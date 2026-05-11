@@ -1,74 +1,93 @@
+/* Odaily Home — macOS 26 Liquid Glass Design */
+
 .odaily-home {
-  --od-home-bg: #f7f7f5;
-  --od-home-text: #222426;
-  --od-home-muted: #8a8d90;
-  --od-home-panel: rgba(255, 255, 255, 0.42);
-  --od-home-panel-border: rgba(255, 255, 255, 0.46);
-  --od-home-card: rgba(255, 255, 255, 0.92);
-  --od-home-card-border: rgba(255, 255, 255, 0.78);
-  --od-home-card-shadow: 0 18px 36px rgba(27, 31, 35, 0.12), 0 5px 12px rgba(27, 31, 35, 0.04);
-  --od-home-control: rgba(255, 255, 255, 0.56);
-  --od-home-control-hover: rgba(255, 255, 255, 0.76);
-  --od-home-line: rgba(29, 32, 35, 0.07);
-  --od-home-line-strong: rgba(29, 32, 35, 0.12);
-  --od-home-thumb: rgba(255, 255, 255, 0.74);
-  --od-home-thumb-border: rgba(32, 35, 38, 0.09);
-  --od-home-note: rgba(255, 218, 110, 0.38);
-  --od-home-note-line: rgba(171, 132, 34, 0.18);
-  --od-home-red: #ff3b3b;
-  --od-home-recent-hover: rgba(255, 255, 255, 0.52);
+  --od-home-bg: #f2f1ef;
+  --od-home-text: #1d1d1f;
+  --od-home-muted: #86868b;
+  --od-home-glass: rgba(255, 255, 255, 0.36);
+  --od-home-glass-border: rgba(255, 255, 255, 0.56);
+  --od-home-glass-hover: rgba(255, 255, 255, 0.52);
+  --od-home-card: rgba(255, 255, 255, 0.46);
+  --od-home-card-border: rgba(255, 255, 255, 0.6);
+  --od-home-card-shadow: 0 2px 16px rgba(0, 0, 0, 0.05), 0 0.5px 2px rgba(0, 0, 0, 0.04);
+  --od-home-card-shadow-hover: 0 8px 36px rgba(0, 0, 0, 0.09), 0 2px 8px rgba(0, 0, 0, 0.05);
+  --od-home-line: rgba(0, 0, 0, 0.04);
+  --od-home-line-strong: rgba(0, 0, 0, 0.07);
+  --od-home-red: #ff3b30;
+  --od-home-note: rgba(255, 218, 110, 0.3);
+  --od-home-note-line: rgba(171, 132, 34, 0.14);
+  --od-home-thumb: rgba(255, 255, 255, 0.72);
+  --od-home-thumb-border: rgba(0, 0, 0, 0.05);
+  --od-home-recent-hover: rgba(255, 255, 255, 0.48);
 
   container-type: inline-size;
+  position: relative;
+  isolation: isolate;
   min-height: 100%;
   overflow: auto;
-  background:
-    radial-gradient(circle at 50% 12%, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0) 36rem),
-    var(--od-home-bg);
+  background: var(--od-home-bg);
   color: var(--od-home-text);
 }
 
 .theme-dark .odaily-home {
-  --od-home-bg: #1f1f1f;
-  --od-home-text: #f0f0f0;
-  --od-home-muted: #9a9a9a;
-  --od-home-panel: rgba(42, 42, 42, 0.54);
-  --od-home-panel-border: rgba(255, 255, 255, 0.02);
-  --od-home-card: rgba(47, 47, 47, 0.96);
-  --od-home-card-border: rgba(255, 255, 255, 0.07);
-  --od-home-card-shadow: 0 22px 36px rgba(0, 0, 0, 0.34), 0 8px 16px rgba(0, 0, 0, 0.22);
-  --od-home-control: rgba(46, 46, 46, 0.78);
-  --od-home-control-hover: rgba(55, 55, 55, 0.92);
-  --od-home-line: rgba(255, 255, 255, 0.08);
-  --od-home-line-strong: rgba(255, 255, 255, 0.16);
-  --od-home-thumb: rgba(36, 36, 36, 0.74);
-  --od-home-thumb-border: rgba(255, 255, 255, 0.08);
-  --od-home-note: rgba(178, 132, 36, 0.28);
-  --od-home-note-line: rgba(245, 197, 87, 0.18);
+  --od-home-bg: #000000;
+  --od-home-text: #f5f5f7;
+  --od-home-muted: #98989d;
+  --od-home-glass: rgba(255, 255, 255, 0.06);
+  --od-home-glass-border: rgba(255, 255, 255, 0.08);
+  --od-home-glass-hover: rgba(255, 255, 255, 0.1);
+  --od-home-card: rgba(255, 255, 255, 0.07);
+  --od-home-card-border: rgba(255, 255, 255, 0.1);
+  --od-home-card-shadow: 0 2px 16px rgba(0, 0, 0, 0.2), 0 0.5px 2px rgba(0, 0, 0, 0.16);
+  --od-home-card-shadow-hover: 0 8px 36px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.22);
+  --od-home-line: rgba(255, 255, 255, 0.06);
+  --od-home-line-strong: rgba(255, 255, 255, 0.1);
+  --od-home-note: rgba(178, 132, 36, 0.16);
+  --od-home-note-line: rgba(245, 197, 87, 0.1);
+  --od-home-thumb: rgba(255, 255, 255, 0.06);
+  --od-home-thumb-border: rgba(255, 255, 255, 0.07);
   --od-home-recent-hover: rgba(255, 255, 255, 0.04);
 
+  background: var(--od-home-bg);
+}
+
+/* 浅色模式 + 背景：微弱暗色覆盖层，继承浅色模式默认变量 */
+.odaily-home--with-background::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* 深色模式 + 背景：深色玻璃变量 + 暗色覆盖层 */
+.theme-dark .odaily-home--with-background {
+  --od-home-text: #ffffff;
+  --od-home-muted: rgba(255, 255, 255, 0.74);
+  --od-home-glass: rgba(13, 22, 58, 0.46);
+  --od-home-glass-border: rgba(255, 255, 255, 0.2);
+  --od-home-glass-hover: rgba(255, 255, 255, 0.16);
+  --od-home-card: rgba(18, 28, 72, 0.42);
+  --od-home-card-border: rgba(255, 255, 255, 0.22);
+  --od-home-card-shadow: 0 12px 32px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(255, 255, 255, 0.08) inset;
+  --od-home-card-shadow-hover: 0 18px 42px rgba(0, 0, 0, 0.24), 0 1px 2px rgba(255, 255, 255, 0.1) inset;
+  --od-home-line: rgba(255, 255, 255, 0.14);
+  --od-home-line-strong: rgba(255, 255, 255, 0.22);
+  --od-home-note: rgba(255, 255, 255, 0.13);
+  --od-home-note-line: rgba(255, 255, 255, 0.18);
+  --od-home-thumb: rgba(255, 255, 255, 0.13);
+  --od-home-thumb-border: rgba(255, 255, 255, 0.18);
+  --od-home-recent-hover: rgba(255, 255, 255, 0.1);
+}
+
+.theme-dark .odaily-home--with-background::before {
   background:
-    radial-gradient(circle at 50% 20%, rgba(38, 38, 38, 0.9), rgba(31, 31, 31, 0) 34rem),
-    var(--od-home-bg);
+    linear-gradient(180deg, rgba(2, 6, 22, 0.28), rgba(2, 6, 22, 0.46)),
+    linear-gradient(90deg, rgba(2, 6, 22, 0.22), rgba(2, 6, 22, 0.08) 42%, rgba(2, 6, 22, 0.24));
 }
 
-.odaily-home__shell {
-  width: min(100%, 494px);
-  margin: 0 auto;
-  padding: 43px 0 24px;
-}
-
-.odaily-home__header {
-  margin-bottom: 44px;
-}
-
-.odaily-home__header h1 {
-  margin: 0;
-  color: var(--od-home-text);
-  font-size: 20px;
-  font-weight: 760;
-  letter-spacing: 0;
-  line-height: 1.2;
-}
+/* ── Reset ──────────────────────────────────────────── */
 
 .odaily-home,
 .odaily-home *,
@@ -81,128 +100,189 @@
   font-family: inherit;
 }
 
-.odaily-home__actions {
+/* ── Shell ──────────────────────────────────────────── */
+
+.odaily-home__shell {
   position: relative;
-  display: grid;
-  grid-template-columns: repeat(3, 164px);
-  gap: 0;
-  width: 494px;
-  height: 147px;
-  margin: 0 0 48px;
+  z-index: 1;
+  width: min(100%, 520px);
+  margin: 0 auto;
+  padding: 52px 0 32px;
 }
+
+/* ── Header ─────────────────────────────────────────── */
+
+.odaily-home__header {
+  margin-bottom: 32px;
+}
+
+.odaily-home__header h1 {
+  margin: 0;
+  color: var(--od-home-text);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.odaily-home--with-background .odaily-home__header h1 {
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.34);
+}
+
+/* ── Action Cards Grid ─────────────────────────────── */
+
+.odaily-home__actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 0 0 18px;
+}
+
+/* ── Glass Card ────────────────────────────────────── */
 
 .odaily-home__card {
   display: block !important;
   position: relative;
   min-width: 0;
-  height: 142px;
-  padding: 17px 17px 15px;
+  height: 152px;
+  padding: 18px;
   overflow: hidden;
   appearance: none;
   border: 1px solid var(--od-home-card-border);
-  border-radius: 12px;
+  border-radius: 20px;
   background: var(--od-home-card);
   background-color: var(--od-home-card) !important;
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
   box-shadow: var(--od-home-card-shadow);
   box-shadow: var(--od-home-card-shadow) !important;
   color: var(--od-home-text);
   cursor: pointer;
   text-align: left;
-  transform-origin: 50% 60%;
   transition:
-    border-color 140ms ease,
-    box-shadow 140ms ease,
-    transform 140ms ease;
+    transform 240ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    box-shadow 240ms ease,
+    border-color 240ms ease;
 }
 
-.odaily-home__card--quick-note {
-  z-index: 2;
-  width: 166px;
-  transform: translateX(6px) rotate(-1.6deg);
+.odaily-home__card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: linear-gradient(178deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 42%, transparent 68%);
+  pointer-events: none;
+  z-index: 1;
 }
 
-.odaily-home__card--new-document {
-  z-index: 3;
-  width: 170px;
-  transform: translateX(10px) translateY(0) rotate(3.3deg);
+.theme-dark .odaily-home__card::before {
+  background: linear-gradient(178deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 42%, transparent 68%);
 }
 
-.odaily-home__card--todo-list {
-  z-index: 2;
-  width: 168px;
-  transform: translateX(10px) translateY(-4px) rotate(-4.5deg);
+.odaily-home--with-background .odaily-home__card {
+  backdrop-filter: blur(30px) saturate(125%);
+  -webkit-backdrop-filter: blur(30px) saturate(125%);
+}
+
+.odaily-home--with-background .odaily-home__card::before {
+  background: linear-gradient(178deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.05) 46%, rgba(255, 255, 255, 0.01) 78%);
 }
 
 .odaily-home__card:hover,
 .odaily-home__card:focus-visible {
-  border-color: rgba(128, 128, 128, 0.28);
-  box-shadow: 0 24px 44px rgba(27, 31, 35, 0.14), 0 8px 18px rgba(27, 31, 35, 0.08);
-  box-shadow: 0 24px 44px rgba(27, 31, 35, 0.14), 0 8px 18px rgba(27, 31, 35, 0.08) !important;
+  border-color: rgba(128, 128, 128, 0.2);
+  box-shadow: var(--od-home-card-shadow-hover);
+  box-shadow: var(--od-home-card-shadow-hover) !important;
+  transform: translateY(-3px);
 }
 
-.theme-dark .odaily-home__card:hover,
-.theme-dark .odaily-home__card:focus-visible {
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 28px 46px rgba(0, 0, 0, 0.42), 0 10px 20px rgba(0, 0, 0, 0.28);
-  box-shadow: 0 28px 46px rgba(0, 0, 0, 0.42), 0 10px 20px rgba(0, 0, 0, 0.28) !important;
+.odaily-home__card--quick-note,
+.odaily-home__card--new-document,
+.odaily-home__card--todo-list {
+  width: auto;
+  transform: none;
+  z-index: auto;
 }
 
 .odaily-home__card--quick-note:hover,
-.odaily-home__card--quick-note:focus-visible {
-  transform: translateX(6px) translateY(-3px) rotate(-1.6deg);
-}
-
+.odaily-home__card--quick-note:focus-visible,
 .odaily-home__card--new-document:hover,
-.odaily-home__card--new-document:focus-visible {
-  transform: translateX(10px) translateY(-3px) rotate(3.3deg);
-}
-
+.odaily-home__card--new-document:focus-visible,
 .odaily-home__card--todo-list:hover,
 .odaily-home__card--todo-list:focus-visible {
-  transform: translateX(10px) translateY(-7px) rotate(-4.5deg);
+  transform: translateY(-3px);
 }
+
+/* ── Card Content ──────────────────────────────────── */
 
 .odaily-home__card-top {
   position: relative;
   z-index: 2;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
-.odaily-home__card-top strong {
+.odaily-home__card-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.odaily-home__card-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.odaily-home__card-title-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.odaily-home__card-title-area strong {
   overflow-wrap: anywhere;
   color: var(--od-home-text);
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.12;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
 }
 
 .odaily-home__card-subtitle {
   position: relative;
   z-index: 2;
   display: block;
-  margin-top: 5px;
   color: var(--od-home-muted);
   font-size: 12px;
-  font-weight: 540;
-  line-height: 1.25;
+  font-weight: 500;
+  line-height: 1.3;
 }
+
+.theme-dark .odaily-home--with-background .odaily-home__card-subtitle {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+/* ── Date Badge ────────────────────────────────────── */
 
 .odaily-home__date-badge {
   display: grid;
-  width: 32px;
-  min-width: 32px;
+  width: 34px;
+  min-width: 34px;
   overflow: hidden;
-  border-radius: 5px;
+  border-radius: 7px;
   background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .theme-dark .odaily-home__date-badge {
-  background: #e9e9e9;
+  background: #e8e8e8;
 }
 
 .odaily-home__date-month,
@@ -210,29 +290,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 15px;
   letter-spacing: 0;
 }
 
 .odaily-home__date-month {
+  height: 16px;
   background: var(--od-home-red);
   color: #ffffff;
   font-size: 8px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .odaily-home__date-day {
-  color: #2a2a2a;
-  font-size: 12px;
-  font-weight: 820;
+  height: 18px;
+  color: #1d1d1f;
+  font-size: 13px;
+  font-weight: 800;
 }
+
+/* ── Card Lines ────────────────────────────────────── */
 
 .odaily-home__card-lines {
   position: relative;
   z-index: 1;
   display: grid;
   gap: 6px;
-  margin-top: 25px;
+  margin-top: 22px;
 }
 
 .odaily-home__card-lines span,
@@ -244,94 +327,82 @@
   mask: url("data:image/svg+xml,%3Csvg width='140' height='24' viewBox='0 0 140 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 14 C17 5 29 5 43 14 S70 23 84 14 S112 5 137 12' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
 }
 
-.odaily-home__card-lines span:nth-child(1) {
+/* Quick-note: longer lines, centered */
+.odaily-home__card--quick-note .odaily-home__card-lines span:nth-child(1) {
+  width: 96%;
+  justify-self: center;
+}
+
+.odaily-home__card--quick-note .odaily-home__card-lines span:nth-child(2) {
   width: 88%;
+  justify-self: center;
 }
 
-.odaily-home__card-lines span:nth-child(2) {
-  width: 82%;
-}
-
-.odaily-home__card-lines span:nth-child(3) {
+.odaily-home__card--quick-note .odaily-home__card-lines span:nth-child(3) {
   display: none;
-  width: 70%;
+  width: 76%;
+  justify-self: center;
 }
 
+/* New-document: different curve, same thickness (18px), centered */
 .odaily-home__card--new-document .odaily-home__card-lines {
-  gap: 4px;
-  margin-top: 19px;
-  width: 72%;
+  margin-top: 18px;
 }
 
 .odaily-home__card--new-document .odaily-home__card-lines span {
-  height: 15px;
+  justify-self: center;
+  background: var(--od-home-line-strong);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg width='140' height='24' viewBox='0 0 140 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 16 Q35 6 70 16 T137 16' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg width='140' height='24' viewBox='0 0 140 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 16 Q35 6 70 16 T137 16' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
 }
 
 .odaily-home__card--new-document .odaily-home__card-lines span:nth-child(1) {
-  width: 100%;
+  width: 82%;
 }
 
 .odaily-home__card--new-document .odaily-home__card-lines span:nth-child(2) {
-  width: 88%;
+  width: 65%;
 }
+
+/* ── Note Patch ────────────────────────────────────── */
 
 .odaily-home__note-patch {
-  position: absolute;
-  right: 10px;
-  bottom: 0px;
-  width: 102px;
-  height: 34px;
-  border-radius: 6px 6px 2px 2px;
-  background: var(--od-home-note);
-  transform: rotate(0deg);
+  position: relative;
   z-index: 2;
+  width: 72%;
+  height: 30px;
+  margin: -14px auto 0;
+  border-radius: 3px;
+  background: var(--od-home-note);
 }
 
-.odaily-home__note-patch span {
-  position: absolute;
-  left: 13px;
-  right: 11px;
-  height: 14px;
-  background: var(--od-home-note-line);
-  -webkit-mask: url("data:image/svg+xml,%3Csvg width='92' height='20' viewBox='0 0 92 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 11 C12 4 20 4 30 11 S48 18 58 11 S76 4 90 10' fill='none' stroke='black' stroke-width='2.8' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg width='92' height='20' viewBox='0 0 92 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 11 C12 4 20 4 30 11 S48 18 58 11 S76 4 90 10' fill='none' stroke='black' stroke-width='2.8' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
-}
-
-.odaily-home__note-patch span:nth-child(1) {
-  top: 8px;
-}
-
-.odaily-home__note-patch span:nth-child(2) {
-  top: 20px;
-  left: 24px;
-}
+/* ── Todo Preview ──────────────────────────────────── */
 
 .odaily-home__todo-preview {
   position: relative;
   z-index: 2;
   display: grid;
   gap: 7px;
-  margin-top: 16px;
+  margin-top: 14px;
 }
 
 .odaily-home__todo-row {
   display: grid;
-  grid-template-columns: 19px minmax(0, 1fr);
+  grid-template-columns: 18px minmax(0, 1fr);
   gap: 8px;
   align-items: center;
 }
 
 .odaily-home__todo-box {
-  width: 17px;
-  height: 17px;
-  border: 1px solid var(--od-home-line-strong);
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--od-home-line-strong);
   border-radius: 5px;
   background: var(--od-home-line);
 }
 
 .odaily-home__wave {
   width: 100%;
-  height: 18px;
 }
 
 .odaily-home__wave--short {
@@ -342,89 +413,205 @@
   display: none;
 }
 
+/* ── Search Bar ────────────────────────────────────── */
+
 .odaily-home__search {
   display: flex !important;
   align-items: center;
   justify-content: flex-start;
   width: 100%;
-  height: 37px;
-  margin: 0 0 31px;
-  padding: 0 13px;
+  height: 42px;
+  margin: 0 0 24px;
+  padding: 0 14px;
   appearance: none;
-  border: 0;
-  border-radius: 7px;
-  background: var(--od-home-control);
-  background-color: var(--od-home-control) !important;
+  border: 1px solid var(--od-home-glass-border);
+  border-radius: 14px;
+  background: var(--od-home-glass);
+  background-color: var(--od-home-glass) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   box-shadow: none !important;
   color: var(--od-home-muted);
   cursor: pointer;
   font-size: 13px;
-  font-weight: 560;
+  font-weight: 500;
   letter-spacing: 0;
   text-align: left;
   transition:
-    background 140ms ease,
-    color 140ms ease;
+    background 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease,
+    transform 200ms ease;
 }
 
 .odaily-home__search:hover,
 .odaily-home__search:focus-visible {
-  background: var(--od-home-control-hover);
-  background-color: var(--od-home-control-hover) !important;
+  background: var(--od-home-glass-hover);
+  background-color: var(--od-home-glass-hover) !important;
+  border-color: rgba(128, 128, 128, 0.18);
   color: var(--od-home-text);
+  transform: translateY(-1px);
+}
+
+.theme-dark .odaily-home--with-background .odaily-home__search {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(10, 18, 48, 0.48);
+  background-color: rgba(10, 18, 48, 0.48) !important;
+  backdrop-filter: blur(26px) saturate(120%);
+  -webkit-backdrop-filter: blur(26px) saturate(120%);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.theme-dark .odaily-home--with-background .odaily-home__search:hover,
+.theme-dark .odaily-home--with-background .odaily-home__search:focus-visible {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(18, 30, 72, 0.58);
+  background-color: rgba(18, 30, 72, 0.58) !important;
+  color: #ffffff;
 }
 
 .odaily-home__search-icon {
   display: inline-flex;
-  margin-right: 12px;
+  margin-right: 10px;
 }
 
 .odaily-home__search-icon svg {
-  width: 17px;
-  height: 17px;
-  stroke-width: 2.2;
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
 }
+
+/* ── Recent Panel ──────────────────────────────────── */
 
 .odaily-home__recent-panel {
-  min-height: 368px;
-  padding: 19px 16px 24px;
-  border: 1px solid var(--od-home-panel-border);
-  border-radius: 7px;
-  background: var(--od-home-panel);
+  min-height: 340px;
+  padding: 20px 18px 24px;
+  border: 1px solid var(--od-home-glass-border);
+  border-radius: 20px;
+  background: var(--od-home-glass);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
 }
 
-.odaily-home__recent-panel h2 {
-  margin: 0 0 18px;
+.theme-dark .odaily-home--with-background .odaily-home__recent-panel {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(8, 15, 42, 0.64);
+  backdrop-filter: blur(32px) saturate(118%);
+  -webkit-backdrop-filter: blur(32px) saturate(118%);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.26), 0 1px 2px rgba(255, 255, 255, 0.08) inset;
+}
+
+/* ── Recent Header ─────────────────────────────────── */
+
+.odaily-home__recent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.odaily-home__recent-header h2 {
+  margin: 0;
   padding-left: 0;
   color: var(--od-home-muted);
   font-size: 13px;
-  font-weight: 560;
+  font-weight: 600;
   letter-spacing: 0;
   line-height: 1.3;
 }
 
+.theme-dark .odaily-home--with-background .odaily-home__recent-header h2 {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.odaily-home__refresh-btn {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 6px;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--od-home-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transform-origin: center;
+  transition: color 180ms ease, opacity 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-dark .odaily-home--with-background .odaily-home__refresh-btn {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.odaily-home__refresh-btn:hover,
+.odaily-home__refresh-btn:focus-visible {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--od-home-text);
+  box-shadow: none !important;
+}
+
+.odaily-home__refresh-btn:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--od-home-text);
+  box-shadow: none !important;
+}
+
+.odaily-home__refresh-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.8;
+  transform-origin: center;
+}
+
+.odaily-home__refresh-btn--spinning svg {
+  animation: odaily-refresh-spin 520ms ease-in-out both;
+}
+
+@keyframes odaily-refresh-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(720deg);
+  }
+}
+
+/* ── Recent List ───────────────────────────────────── */
+
 .odaily-home__recent-list {
   display: grid;
-  gap: 9px;
+  gap: 4px;
 }
 
 .odaily-home__recent-item {
   display: grid !important;
-  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-columns: 34px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
   width: 100%;
-  min-height: 43px;
-  padding: 0;
+  min-height: 48px;
+  padding: 6px 10px;
   appearance: none;
   border: 0;
-  border-radius: 6px;
+  border-radius: 12px;
   background: transparent;
   background-color: transparent !important;
   box-shadow: none !important;
   color: var(--od-home-text);
   cursor: pointer;
   text-align: left;
+  transition: background 180ms ease;
 }
 
 .odaily-home__recent-item:hover,
@@ -433,14 +620,30 @@
   background-color: var(--od-home-recent-hover) !important;
 }
 
+.theme-dark .odaily-home--with-background .odaily-home__recent-item {
+  color: #ffffff;
+}
+
+.theme-dark .odaily-home--with-background .odaily-home__recent-item:hover,
+.theme-dark .odaily-home--with-background .odaily-home__recent-item:focus-visible {
+  background: rgba(255, 255, 255, 0.11);
+  background-color: rgba(255, 255, 255, 0.11) !important;
+}
+
+/* ── Thumbnails ────────────────────────────────────── */
+
 .odaily-home__thumb {
   position: relative;
-  width: 30px;
-  height: 38px;
+  width: 32px;
+  height: 40px;
   overflow: hidden;
   border: 1px solid var(--od-home-thumb-border);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--od-home-thumb);
+}
+
+.theme-dark .odaily-home--with-background .odaily-home__thumb {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
 }
 
 .odaily-home__thumb::before {
@@ -483,13 +686,13 @@
 
 .odaily-home__thumb--1 {
   background:
-    linear-gradient(90deg, transparent 0 6px, rgba(0, 0, 0, 0.05) 6px 7px, transparent 7px),
+    linear-gradient(90deg, transparent 0 6px, rgba(0, 0, 0, 0.04) 6px 7px, transparent 7px),
     var(--od-home-thumb);
 }
 
 .theme-dark .odaily-home__thumb--1 {
   background:
-    linear-gradient(90deg, transparent 0 6px, rgba(255, 255, 255, 0.08) 6px 7px, transparent 7px),
+    linear-gradient(90deg, transparent 0 6px, rgba(255, 255, 255, 0.06) 6px 7px, transparent 7px),
     var(--od-home-thumb);
 }
 
@@ -501,34 +704,41 @@
   bottom: 5px;
   width: 12px;
   height: 8px;
-  border-radius: 2px;
-  background: rgba(68, 137, 255, 0.24);
+  border-radius: 3px;
+  background: rgba(68, 137, 255, 0.2);
 }
 
 .odaily-home__thumb--3::after {
   width: 18px;
-  background: rgba(232, 160, 74, 0.22);
+  background: rgba(232, 160, 74, 0.18);
 }
+
+/* ── Recent Text ───────────────────────────────────── */
 
 .odaily-home__recent-title {
   overflow: hidden;
   color: var(--od-home-text);
   font-size: 14px;
-  font-weight: 730;
-  letter-spacing: 0;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .odaily-home__recent-meta {
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--od-home-muted);
   font-size: 12px;
-  font-weight: 520;
-  letter-spacing: 0;
+  font-weight: 500;
   line-height: 1.2;
 }
+
+.theme-dark .odaily-home--with-background .odaily-home__recent-meta {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+/* ── Empty State ───────────────────────────────────── */
 
 .odaily-home__empty {
   display: flex;
@@ -539,33 +749,21 @@
   font-size: 14px;
 }
 
+/* ── Responsive ────────────────────────────────────── */
+
 @container (max-width: 560px) {
   .odaily-home__shell {
-    width: min(100%, 494px);
-    padding: 34px 18px 24px;
+    width: min(100%, 520px);
+    padding: 40px 20px 28px;
   }
 
   .odaily-home__actions {
-    width: 100%;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
   }
 
-  .odaily-home__card--quick-note,
-  .odaily-home__card--new-document,
-  .odaily-home__card--todo-list {
-    width: calc(100% + 18px);
-  }
-
-  .odaily-home__card--quick-note {
-    transform: translateX(0) rotate(-1.6deg);
-  }
-
-  .odaily-home__card--new-document {
-    transform: translateX(-9px) rotate(3.3deg);
-  }
-
-  .odaily-home__card--todo-list {
-    transform: translateX(-18px) translateY(-4px) rotate(-4.5deg);
+  .odaily-home__card {
+    height: 144px;
+    padding: 16px;
   }
 }
 
@@ -575,14 +773,16 @@
   }
 
   .odaily-home__actions {
-    display: grid;
     grid-template-columns: 1fr;
-    height: auto;
-    gap: 12px;
-    margin-bottom: 30px;
+    gap: 10px;
+    margin-bottom: 18px;
   }
 
-  .odaily-home__card,
+  .odaily-home__card {
+    height: auto;
+    min-height: 120px;
+  }
+
   .odaily-home__card--quick-note,
   .odaily-home__card--new-document,
   .odaily-home__card--todo-list,
@@ -592,7 +792,81 @@
   .odaily-home__card--quick-note:focus-visible,
   .odaily-home__card--new-document:focus-visible,
   .odaily-home__card--todo-list:focus-visible {
-    width: 100%;
     transform: none;
   }
+}
+
+/* ── Bottom Bar ─────────────────────────────────────── */
+
+.odaily-home__bottom-bar {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 100;
+}
+
+.odaily-home__bottom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  appearance: none;
+  border: 1px solid var(--od-home-glass-border);
+  border-radius: 10px;
+  background: var(--od-home-glass);
+  background-color: var(--od-home-glass) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: none !important;
+  color: var(--od-home-muted);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease,
+    transform 200ms ease;
+}
+
+.odaily-home__bottom-btn:hover,
+.odaily-home__bottom-btn:focus-visible {
+  background: var(--od-home-glass-hover);
+  background-color: var(--od-home-glass-hover) !important;
+  border-color: rgba(128, 128, 128, 0.2);
+  color: var(--od-home-text);
+  transform: translateY(-1px);
+}
+
+.odaily-home__bottom-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+/* Tooltip */
+.odaily-home__bottom-btn[aria-label]::after {
+  content: attr(aria-label);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.odaily-home__bottom-btn:hover[aria-label]::after,
+.odaily-home__bottom-btn:focus-visible[aria-label]::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
