@@ -1,4 +1,8 @@
 node_modules/
 .playwright-mcp/
+.playwright-cli/
+.DS_Store
 odaily-icon-preview.png
 odaily-liquid-glass-preview.png
+preview-fixed.png
+*.svg
