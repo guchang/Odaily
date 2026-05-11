@@ -11,6 +11,7 @@ import {
 } from "obsidian";
 
 const OD_VIEW_TYPE = "odaily-home-view";
+const OD_SIDEBAR_VIEW_TYPE = "odaily-sidebar-view";
 const EMPTY_VIEW_TYPE = "empty";
 
 const NOTES_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 3 100 94">
@@ -41,11 +42,13 @@ interface ObsidianCommandManager {
 interface OdailySettings {
   lightBackground: string;
   darkBackground: string;
+  taskTags: string;
 }
 
 const DEFAULT_SETTINGS: OdailySettings = {
   lightBackground: "",
-  darkBackground: ""
+  darkBackground: "",
+  taskTags: ""
 };
 
 export default class OdailyHomePlugin extends Plugin {
@@ -60,14 +63,29 @@ export default class OdailyHomePlugin extends Plugin {
       (leaf) => new OdailyHomeView(leaf, this)
     );
 
+    this.registerView(
+      OD_SIDEBAR_VIEW_TYPE,
+      (leaf) => new OdailySidebarView(leaf, this)
+    );
+
     this.addCommand({
       id: "open-odaily-home",
       name: "Open Odaily home",
       callback: () => this.openHomeInNewTab()
     });
 
+    this.addCommand({
+      id: "open-odaily-sidebar",
+      name: "Open Odaily sidebar",
+      callback: () => this.openSidebar()
+    });
+
     this.addRibbonIcon("layout-dashboard", "Open Odaily home", () => {
       void this.openHomeInNewTab();
+    });
+
+    this.addRibbonIcon("list-checks", "Open Odaily sidebar", () => {
+      void this.openSidebar();
     });
 
     this.registerEvent(
@@ -92,8 +110,25 @@ export default class OdailyHomePlugin extends Plugin {
   }
 
   async openHomeInNewTab(): Promise<void> {
+    const existing = this.app.workspace.getLeavesOfType(OD_VIEW_TYPE)[0];
+    if (existing) {
+      this.app.workspace.revealLeaf(existing);
+      return;
+    }
     const leaf = this.app.workspace.getLeaf("tab");
     await leaf.setViewState({ type: OD_VIEW_TYPE, active: true });
+  }
+
+  async openSidebar(): Promise<void> {
+    const existing = this.app.workspace.getLeavesOfType(OD_SIDEBAR_VIEW_TYPE)[0];
+    if (existing) {
+      this.app.workspace.revealLeaf(existing);
+      return;
+    }
+    const leaf = this.app.workspace.getRightLeaf(false);
+    if (leaf) {
+      await leaf.setViewState({ type: OD_SIDEBAR_VIEW_TYPE, active: true });
+    }
   }
 
   async createNote(): Promise<void> {
@@ -101,6 +136,13 @@ export default class OdailyHomePlugin extends Plugin {
     const existingFile = this.app.vault.getAbstractFileByPath(fileName);
 
     if (existingFile instanceof TFile) {
+      const openLeaf = this.app.workspace.getLeavesOfType("markdown").find(
+        (l) => (l.view as any).file?.path === existingFile.path
+      );
+      if (openLeaf) {
+        this.app.workspace.revealLeaf(openLeaf);
+        return;
+      }
       await this.app.workspace.getLeaf("tab").openFile(existingFile);
       return;
     }
@@ -531,6 +573,488 @@ class OdailyHomeView extends ItemView {
   }
 }
 
+interface TaskInfo {
+  file: TFile;
+  text: string;
+  line: number;
+  createdAt: number;
+  tags: string[];
+}
+
+function parseTaskTime(text: string, fileMtime: number): number {
+  const created = text.match(/➕\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/);
+  if (created) return new Date(created[1].replace(/(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/, "$1T$2:00")).getTime();
+  const scheduled = text.match(/[📅⏳]\s*(\d{4}-\d{2}-\d{2})/);
+  if (scheduled) return new Date(scheduled[1]).getTime();
+  return fileMtime;
+}
+
+function parseTags(text: string): string[] {
+  const tags: string[] = [];
+  const re = /#([\w一-鿿\-\/]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (!tags.includes(m[1])) tags.push(m[1]);
+  }
+  return tags;
+}
+
+function cleanTaskText(text: string): string {
+  return text
+    .replace(/#[\w一-鿿\-\/]+/g, "")
+    .replace(/[➕✅⏳📅]\s*\d{4}-\d{2}-\d{2}(\s+\d{2}:\d{2})?/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function formatTaskTime(ts: number): string {
+  const d = new Date(ts);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+class OdailySidebarView extends ItemView {
+  private pendingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private selectedDate: Date = new Date();
+  private showMonthPicker = false;
+
+  constructor(
+    leaf: WorkspaceLeaf,
+    private readonly plugin: OdailyHomePlugin
+  ) {
+    super(leaf);
+  }
+
+  getViewType(): string {
+    return OD_SIDEBAR_VIEW_TYPE;
+  }
+
+  getDisplayText(): string {
+    return "Odaily 概览";
+  }
+
+  getIcon(): string {
+    return "list-checks";
+  }
+
+  async onOpen(): Promise<void> {
+    await this.render();
+  }
+
+  async onClose(): Promise<void> {
+    this.contentEl.empty();
+  }
+
+  private async render(): Promise<void> {
+    this.contentEl.empty();
+    this.contentEl.addClass("odaily-sidebar");
+
+    this.renderCalendar();
+
+    const body = this.contentEl.createDiv({ cls: "odaily-sidebar__body" });
+
+    this.renderTodayDocs(body);
+    await this.renderTasks(body);
+    await this.renderTodayCompleted(body);
+  }
+
+  private renderCalendar(): void {
+    const cal = this.contentEl.createDiv({ cls: "odaily-sidebar__calendar" });
+
+    const calHeader = cal.createDiv({ cls: "odaily-sidebar__calendar-header" });
+    const sel = this.selectedDate;
+    const fmtMD = (d: Date) => `${d.getMonth() + 1}月${d.getDate()}日`;
+
+    const weekStart = new Date(sel);
+    weekStart.setDate(sel.getDate() - sel.getDay());
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+
+    // Clickable title — toggles month picker
+    const titleEl = calHeader.createSpan({
+      cls: "odaily-sidebar__calendar-title",
+      text: `${fmtMD(weekStart)} - ${fmtMD(weekEnd)}`
+    });
+    titleEl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.showMonthPicker = !this.showMonthPicker;
+      void this.render();
+    });
+
+    const nav = calHeader.createDiv({ cls: "odaily-sidebar__calendar-nav" });
+
+    const prevBtn = nav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": "前一天" } });
+    setIcon(prevBtn, "chevron-left");
+    prevBtn.addEventListener("click", (e) => { e.stopPropagation(); const d = new Date(sel); d.setDate(sel.getDate() - 1); this.selectedDate = d; void this.render(); });
+
+    const todayBtn = nav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn odaily-sidebar__calendar-nav-btn--today", attr: { type: "button" } });
+    todayBtn.createSpan({ text: "今天" });
+    todayBtn.addEventListener("click", (e) => { e.stopPropagation(); this.selectedDate = new Date(); this.showMonthPicker = false; void this.render(); });
+
+    const nextBtn = nav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": "后一天" } });
+    setIcon(nextBtn, "chevron-right");
+    nextBtn.addEventListener("click", (e) => { e.stopPropagation(); const d = new Date(sel); d.setDate(sel.getDate() + 1); this.selectedDate = d; void this.render(); });
+
+    // Day-of-week headers
+    const dowRow = cal.createDiv({ cls: "odaily-sidebar__calendar-dow" });
+    const dowLabels = ["日", "一", "二", "三", "四", "五", "六"];
+    for (const d of dowLabels) {
+      dowRow.createSpan({ cls: "odaily-sidebar__calendar-dow-item", text: d });
+    }
+
+    const today = new Date();
+
+    if (this.showMonthPicker) {
+      // Month navigation row
+      const monthNav = cal.createDiv({ cls: "odaily-sidebar__calendar-monthnav" });
+      const prevMonBtn = monthNav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": "上个月" } });
+      setIcon(prevMonBtn, "chevron-left");
+      prevMonBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.selectedDate = new Date(sel.getFullYear(), sel.getMonth() - 1, Math.min(sel.getDate(), new Date(sel.getFullYear(), sel.getMonth(), 0).getDate()));
+        void this.render();
+      });
+
+      monthNav.createSpan({ cls: "odaily-sidebar__calendar-monthlabel", text: `${sel.getFullYear()}年${sel.getMonth() + 1}月` });
+
+      const nextMonBtn = monthNav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": "下个月" } });
+      setIcon(nextMonBtn, "chevron-right");
+      nextMonBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.selectedDate = new Date(sel.getFullYear(), sel.getMonth() + 1, Math.min(sel.getDate(), new Date(sel.getFullYear(), sel.getMonth() + 2, 0).getDate()));
+        void this.render();
+      });
+
+      // Month picker: full month grid
+      const grid = cal.createDiv({ cls: "odaily-sidebar__calendar-grid" });
+      const year = sel.getFullYear();
+      const month = sel.getMonth();
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < firstDay; i++) {
+        grid.createDiv({ cls: "odaily-sidebar__calendar-day odaily-sidebar__calendar-day--empty" });
+      }
+      for (let d = 1; d <= daysInMonth; d++) {
+        const cell = grid.createDiv({ cls: "odaily-sidebar__calendar-day" });
+        cell.createSpan({ cls: "odaily-sidebar__calendar-day-num", text: String(d) });
+        const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+        const isSelected = d === sel.getDate() && month === sel.getMonth() && year === sel.getFullYear();
+        if (isToday) cell.addClass("odaily-sidebar__calendar-day--today");
+        if (isSelected) cell.addClass("odaily-sidebar__calendar-day--selected");
+        cell.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.selectedDate = new Date(year, month, d);
+          this.showMonthPicker = false;
+          void this.render();
+        });
+      }
+    } else {
+      // Week view: single row of 7 days
+      const grid = cal.createDiv({ cls: "odaily-sidebar__calendar-grid" });
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(weekStart);
+        d.setDate(weekStart.getDate() + i);
+        const cell = grid.createDiv({ cls: "odaily-sidebar__calendar-day" });
+        cell.createSpan({ cls: "odaily-sidebar__calendar-day-num", text: String(d.getDate()) });
+        const isToday = d.toDateString() === today.toDateString();
+        const isSelected = d.toDateString() === sel.toDateString();
+        if (isToday) cell.addClass("odaily-sidebar__calendar-day--today");
+        if (isSelected) cell.addClass("odaily-sidebar__calendar-day--selected");
+        cell.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.selectedDate = new Date(d);
+          void this.render();
+        });
+      }
+    }
+  }
+
+  private renderTodayDocs(parent: HTMLElement = this.contentEl): void {
+    const sel = this.selectedDate;
+    const isToday = sel.toDateString() === new Date().toDateString();
+    const section = parent.createDiv({ cls: "odaily-sidebar__section" });
+    section.createEl("h3", { text: isToday ? "今日文档" : `${sel.getMonth() + 1}月${sel.getDate()}日文档` });
+
+    const dayStart = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate()).getTime();
+    const dayEnd = dayStart + 86400000;
+
+    const todayFiles = this.app.vault
+      .getMarkdownFiles()
+      .filter((f) => f.stat.mtime >= dayStart && f.stat.mtime < dayEnd)
+      .sort((a, b) => b.stat.mtime - a.stat.mtime);
+
+    if (todayFiles.length === 0) {
+      const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
+      setIcon(empty.createSpan(), "file-text");
+      empty.createSpan({ text: "暂无" });
+      return;
+    }
+
+    const list = section.createDiv({ cls: "odaily-sidebar__list" });
+    for (const file of todayFiles.slice(0, 20)) {
+      const item = list.createDiv({ cls: "odaily-sidebar__item" });
+      setIcon(item.createSpan({ cls: "odaily-sidebar__item-icon" }), "file-text");
+      const body = item.createDiv({ cls: "odaily-sidebar__item-body" });
+      body.createDiv({ cls: "odaily-sidebar__item-title", text: file.basename });
+      body.createDiv({
+        cls: "odaily-sidebar__item-meta",
+        text: formatRelativeTime(file.stat.mtime)
+      });
+      item.addEventListener("click", () => {
+        void this.app.workspace.getLeaf("tab").openFile(file);
+      });
+    }
+  }
+
+  private async renderTasks(parent: HTMLElement = this.contentEl): Promise<void> {
+    const rawTags = this.plugin.settings.taskTags.trim();
+    const filterTags = rawTags
+      ? rawTags.split(/[,，]/).map((t) => t.trim().replace(/^#/, "").toLowerCase()).filter(Boolean)
+      : [];
+
+    const sel = this.selectedDate;
+    const isToday = sel.toDateString() === new Date().toDateString();
+    const section = parent.createDiv({ cls: "odaily-sidebar__section" });
+    const title = isToday ? "未完成任务" : `${sel.getMonth() + 1}月${sel.getDate()}日任务`;
+    section.createEl("h3", { text: title });
+
+    const dayStart = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate()).getTime();
+    const dayEnd = dayStart + 86400000;
+
+    const tasks: TaskInfo[] = [];
+    const files = this.app.vault
+      .getMarkdownFiles()
+      .sort((a, b) => b.stat.mtime - a.stat.mtime)
+      .slice(0, 100);
+
+    for (const file of files) {
+      const content = await this.app.vault.read(file);
+      const lines = content.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        const match = lines[i].match(/^\s*- \[ \]\s+(.+)/);
+        if (match) {
+          const rawText = match[1];
+          const tags = parseTags(rawText);
+          if (filterTags.length > 0) {
+            if (!tags.some((t) => filterTags.includes(t.toLowerCase()))) continue;
+          }
+          const createdAt = parseTaskTime(rawText, file.stat.mtime);
+          if (createdAt >= dayEnd) continue;
+          tasks.push({ file, text: rawText, line: i, createdAt, tags });
+          if (tasks.length >= 30) break;
+        }
+      }
+      if (tasks.length >= 30) break;
+    }
+
+    // Sort by creation time, newest first
+    tasks.sort((a, b) => b.createdAt - a.createdAt);
+
+    if (tasks.length === 0) {
+      const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
+      setIcon(empty.createSpan(), "clipboard-list");
+      empty.createSpan({ text: "没有待办事项" });
+      return;
+    }
+
+    const list = section.createDiv({ cls: "odaily-sidebar__list" });
+    for (const task of tasks) {
+      const key = `${task.file.path}::${task.line}`;
+      const item = list.createDiv({ cls: "odaily-sidebar__item" });
+      if (this.pendingTimers.has(key)) {
+        item.addClass("odaily-sidebar__item--pending");
+      }
+      const box = item.createSpan({ cls: "odaily-sidebar__item-checkbox odaily-sidebar__item-checkbox--active" });
+      setIcon(box, this.pendingTimers.has(key) ? "check-small" : "square");
+      if (this.pendingTimers.has(key)) {
+        box.removeClass("odaily-sidebar__item-checkbox--active");
+      }
+      box.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.toggleTask(key, task, item, box);
+      });
+
+      const body = item.createDiv({ cls: "odaily-sidebar__item-body" });
+      const titleRow = body.createDiv({ cls: "odaily-sidebar__item-title" });
+
+      for (const tag of task.tags) {
+        const tagEl = titleRow.createSpan({ cls: "odaily-sidebar__item-tag", text: `#${tag}` });
+        tagEl.style.color = "var(--text-accent)";
+      }
+      titleRow.createSpan({ text: cleanTaskText(task.text) });
+
+      body.createDiv({
+        cls: "odaily-sidebar__item-meta",
+        text: `${formatTaskTime(task.createdAt)}  ·  ${task.file.basename}`
+      });
+
+      item.addEventListener("click", () => {
+        void this.app.workspace.getLeaf("tab").openFile(task.file);
+      });
+    }
+  }
+
+  private toggleTask(
+    key: string,
+    task: TaskInfo,
+    item: HTMLElement,
+    box: HTMLElement
+  ): void {
+    const existing = this.pendingTimers.get(key);
+    if (existing) {
+      clearTimeout(existing);
+      this.pendingTimers.delete(key);
+      item.removeClass("odaily-sidebar__item--pending");
+      setIcon(box, "square");
+      box.addClass("odaily-sidebar__item-checkbox--active");
+      return;
+    }
+
+    item.addClass("odaily-sidebar__item--pending");
+    setIcon(box, "check-small");
+    box.removeClass("odaily-sidebar__item-checkbox--active");
+
+    const timer = setTimeout(() => {
+      this.pendingTimers.delete(key);
+      void this.executeCompletion(task, item);
+    }, 2000);
+
+    this.pendingTimers.set(key, timer);
+  }
+
+  private async executeCompletion(
+    task: TaskInfo,
+    item: HTMLElement
+  ): Promise<void> {
+    const now = new Date();
+    const ts = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+    const content = await this.app.vault.read(task.file);
+    const lines = content.split("\n");
+    const oldLine = lines[task.line];
+    const hasCompletionTs = /✅\s*\d{4}-\d{2}-\d{2}/.test(oldLine);
+    lines[task.line] = oldLine.replace(/^(\s*)- \[ \]/, "$1- [x]") + (hasCompletionTs ? "" : ` ✅ ${ts}`);
+    await this.app.vault.modify(task.file, lines.join("\n"));
+
+    // Collapse and remove item from DOM
+    item.style.transition = "opacity 280ms ease, max-height 280ms ease, margin-top 280ms ease, margin-bottom 280ms ease, padding-top 280ms ease, padding-bottom 280ms ease";
+    item.style.overflow = "hidden";
+    const height = item.offsetHeight;
+    item.style.maxHeight = height + "px";
+    item.offsetHeight; // force reflow
+    item.style.opacity = "0";
+    item.style.maxHeight = "0";
+    item.style.marginTop = "0";
+    item.style.marginBottom = "0";
+    item.style.paddingTop = "0";
+    item.style.paddingBottom = "0";
+    item.style.pointerEvents = "none";
+
+    const cleanText = cleanTaskText(task.text.replace(/✅.*$/, "").trim());
+    const file = task.file;
+    const isToday = this.selectedDate.toDateString() === new Date().toDateString();
+
+    item.addEventListener("transitionend", () => {
+      item.remove();
+      if (isToday) this.addToTodayCompleted(cleanText, file, ts);
+    }, { once: true });
+  }
+
+  private addToTodayCompleted(text: string, file: TFile, completedTs: string): void {
+    const scrollBody = this.contentEl.querySelector(".odaily-sidebar__body") ?? this.contentEl;
+    const sections = scrollBody.querySelectorAll(".odaily-sidebar__section");
+    let doneSection: HTMLElement | null = null;
+    for (const s of sections) {
+      if (s.querySelector("h3")?.textContent === "今日完成") {
+        doneSection = s as HTMLElement;
+        break;
+      }
+    }
+
+    if (!doneSection) {
+      doneSection = scrollBody.createDiv({ cls: "odaily-sidebar__section" });
+      doneSection.createEl("h3", { text: "今日完成" });
+    }
+
+    // Remove empty state if present
+    const empty = doneSection.querySelector(".odaily-sidebar__empty");
+    if (empty) empty.remove();
+
+    // Get or create list
+    let list = doneSection.querySelector(".odaily-sidebar__list");
+    if (!list) {
+      list = doneSection.createDiv({ cls: "odaily-sidebar__list" });
+    }
+
+    const item = list.createDiv({ cls: "odaily-sidebar__item odaily-sidebar__item--done" });
+    setIcon(item.createSpan({ cls: "odaily-sidebar__item-checkbox" }), "check-circle");
+    const body = item.createDiv({ cls: "odaily-sidebar__item-body" });
+    body.createDiv({ cls: "odaily-sidebar__item-title", text });
+    body.createDiv({ cls: "odaily-sidebar__item-meta", text: `${completedTs}  ·  ${file.basename}` });
+    item.addEventListener("click", () => {
+      void this.app.workspace.getLeaf("tab").openFile(file);
+    });
+  }
+
+  private async renderTodayCompleted(parent: HTMLElement = this.contentEl): Promise<void> {
+    const sel = this.selectedDate;
+    const isToday = sel.toDateString() === new Date().toDateString();
+    const section = parent.createDiv({ cls: "odaily-sidebar__section" });
+    section.createEl("h3", { text: isToday ? "今日完成" : `${sel.getMonth() + 1}月${sel.getDate()}日完成` });
+
+    const dateStr = `${sel.getFullYear()}-${String(sel.getMonth() + 1).padStart(2, "0")}-${String(sel.getDate()).padStart(2, "0")}`;
+    const completed: { file: TFile; text: string; completedTs: string }[] = [];
+
+    const files = this.app.vault
+      .getMarkdownFiles()
+      .sort((a, b) => b.stat.mtime - a.stat.mtime)
+      .slice(0, 100);
+
+    for (const file of files) {
+      const content = await this.app.vault.read(file);
+      const lines = content.split("\n");
+      for (const line of lines) {
+        const match = line.match(/^\s*- \[[xX]\]\s+(.+)/);
+        if (match && line.includes(`✅ ${dateStr}`)) {
+          const tsMatch = line.match(/✅\s*(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})/);
+          completed.push({
+            file,
+            text: cleanTaskText(match[1].replace(/✅.*$/, "").trim()),
+            completedTs: tsMatch ? tsMatch[1] : dateStr
+          });
+        }
+      }
+      if (completed.length >= 20) break;
+    }
+
+    // Sort by completion time, newest first
+    completed.sort((a, b) => b.completedTs.localeCompare(a.completedTs));
+
+    if (completed.length === 0) {
+      const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
+      setIcon(empty.createSpan(), "clipboard-list");
+      empty.createSpan({ text: "没有已完成的事项" });
+      return;
+    }
+
+    const list = section.createDiv({ cls: "odaily-sidebar__list" });
+    for (const task of completed) {
+      const item = list.createDiv({ cls: "odaily-sidebar__item odaily-sidebar__item--done" });
+      setIcon(item.createSpan({ cls: "odaily-sidebar__item-checkbox" }), "check-circle");
+      const body = item.createDiv({ cls: "odaily-sidebar__item-body" });
+      body.createDiv({ cls: "odaily-sidebar__item-title", text: task.text });
+      body.createDiv({
+        cls: "odaily-sidebar__item-meta",
+        text: `${task.completedTs}  ·  ${task.file.basename}`
+      });
+      item.addEventListener("click", () => {
+        void this.app.workspace.getLeaf("tab").openFile(task.file);
+      });
+    }
+  }
+}
+
 function formatDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -604,6 +1128,19 @@ class OdailySettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.darkBackground)
           .onChange(async (value) => {
             this.plugin.settings.darkBackground = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("未完成任务筛选标签")
+      .setDesc("只显示包含指定标签的任务，多个标签用逗号分隔。如: todo, 待办。留空显示所有未完成任务。")
+      .addText((text) =>
+        text
+          .setPlaceholder("如: todo, 待办")
+          .setValue(this.plugin.settings.taskTags)
+          .onChange(async (value) => {
+            this.plugin.settings.taskTags = value;
             await this.plugin.saveSettings();
           })
       );
