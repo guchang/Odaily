@@ -145,7 +145,7 @@ class OdailyHomeView extends ItemView {
     const actionGrid = shell.createDiv({ cls: "odaily-home__actions" });
     this.createActionCard(actionGrid, {
       title: "快速笔记",
-      subtitle: "",
+      subtitle: "捕捉今日灵感",
       variant: "quick-note",
       onClick: () => void this.plugin.createNote()
     });
