@@ -35,8 +35,7 @@ A Liquid Glass daily dashboard for Obsidian. Replace empty new tabs with a beaut
 
 ## Screenshots
 
-![Home View](screenshots/home-view.png)
-![Sidebar](screenshots/sidebar.png)
+![Home View](screenshots/home_view.png)
 
 ## Installation
 
