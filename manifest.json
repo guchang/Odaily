@@ -3,8 +3,8 @@
   "name": "Odaily Home",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
-  "description": "Show an Odaily default page when opening a new tab.",
-  "author": "",
-  "authorUrl": "",
+  "description": "A Liquid Glass new tab page with action cards, calendar sidebar, memo capture, and task management.",
+  "author": "guchang",
+  "authorUrl": "https://github.com/guchang",
   "isDesktopOnly": false
 }

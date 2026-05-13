@@ -15,7 +15,7 @@
     "obsidian-plugin",
     "odaily"
   ],
-  "author": "",
+  "author": "guchang",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^24.0.0",

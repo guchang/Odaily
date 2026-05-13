@@ -1,5 +1,6 @@
 import {
   ItemView,
+  Modal,
   Notice,
   Plugin,
   PluginSettingTab,
@@ -43,12 +44,16 @@ interface OdailySettings {
   lightBackground: string;
   darkBackground: string;
   taskTags: string;
+  todoFile: string;
+  todoPosition: "top" | "bottom";
 }
 
 const DEFAULT_SETTINGS: OdailySettings = {
   lightBackground: "",
   darkBackground: "",
-  taskTags: ""
+  taskTags: "",
+  todoFile: "",
+  todoPosition: "bottom"
 };
 
 export default class OdailyHomePlugin extends Plugin {
@@ -78,6 +83,22 @@ export default class OdailyHomePlugin extends Plugin {
       id: "open-odaily-sidebar",
       name: "Open Odaily sidebar",
       callback: () => this.openSidebar()
+    });
+
+    this.addCommand({
+      id: "odaily-add-memo",
+      name: "Odaily: add memo",
+      callback: () => void this.addMemo()
+    });
+
+    this.addCommand({
+      id: "odaily-add-todo",
+      name: "Odaily: add todo",
+      callback: () => {
+        new TodoInputModal(this.app, (text) => {
+          if (text.trim()) void this.addTodo(text);
+        }).open();
+      }
     });
 
     this.addRibbonIcon("layout-dashboard", "Open Odaily home", () => {
@@ -131,19 +152,23 @@ export default class OdailyHomePlugin extends Plugin {
     }
   }
 
-  async createNote(): Promise<void> {
-    const { fileName, folder } = this.getDailyNotePath();
+  openFileSmart(file: TFile): void {
+    const openLeaf = this.app.workspace.getLeavesOfType("markdown").find(
+      (l) => (l.view as any).file?.path === file.path
+    );
+    if (openLeaf) {
+      this.app.workspace.revealLeaf(openLeaf);
+    } else {
+      void this.app.workspace.getLeaf("tab").openFile(file);
+    }
+  }
+
+  async openDailyNote(date?: Date): Promise<void> {
+    const { fileName, folder } = this.getDailyNotePath(date);
     const existingFile = this.app.vault.getAbstractFileByPath(fileName);
 
     if (existingFile instanceof TFile) {
-      const openLeaf = this.app.workspace.getLeavesOfType("markdown").find(
-        (l) => (l.view as any).file?.path === existingFile.path
-      );
-      if (openLeaf) {
-        this.app.workspace.revealLeaf(openLeaf);
-        return;
-      }
-      await this.app.workspace.getLeaf("tab").openFile(existingFile);
+      this.openFileSmart(existingFile);
       return;
     }
 
@@ -151,13 +176,81 @@ export default class OdailyHomePlugin extends Plugin {
       await this.app.vault.createFolder(folder).catch(() => undefined);
     }
 
-    const today = new Date();
-    const file = await this.app.vault.create(
-      fileName,
-      `# ${formatDisplayDate(today)}\n\n`
-    );
+    const content = await this.getTemplateContent();
+    const file = await this.app.vault.create(fileName, content);
 
-    await this.app.workspace.getLeaf("tab").openFile(file);
+    this.openFileSmart(file);
+
+    await this.applyTemplater(file);
+  }
+
+  async createNote(): Promise<void> {
+    const { fileName, folder } = this.getDailyNotePath();
+    const existingFile = this.app.vault.getAbstractFileByPath(fileName);
+
+    if (existingFile instanceof TFile) {
+      this.openFileSmart(existingFile);
+      return;
+    }
+
+    if (folder) {
+      await this.app.vault.createFolder(folder).catch(() => undefined);
+    }
+
+    const content = await this.getTemplateContent();
+    const file = await this.app.vault.create(fileName, content);
+
+    this.openFileSmart(file);
+
+    await this.applyTemplater(file);
+  }
+
+  private async getTemplateContent(): Promise<string> {
+    const dailyNotesPlugin = (this.app as typeof this.app & {
+      internalPlugins?: {
+        getPluginById(id: string): {
+          enabled: boolean;
+          instance?: { options?: { format?: string; folder?: string; template?: string } };
+        } | null;
+      };
+    }).internalPlugins?.getPluginById("daily-notes");
+
+    const templatePath = dailyNotesPlugin?.enabled
+      ? dailyNotesPlugin.instance?.options?.template
+      : undefined;
+
+    if (templatePath) {
+      const normalizedPath = templatePath.replace(/\.md$/, "") + ".md";
+      const templateFile = this.app.vault.getAbstractFileByPath(normalizedPath);
+      if (templateFile instanceof TFile) {
+        return await this.app.vault.read(templateFile);
+      }
+    }
+
+    const today = new Date();
+    return `# ${formatDisplayDate(today)}\n\n`;
+  }
+
+  private async applyTemplater(file: TFile): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const appPlugins = (this.app as any).plugins?.plugins;
+    if (!appPlugins) return;
+
+    const templaterPlugin = appPlugins["templater-obsidian"];
+    if (!templaterPlugin?.api) return;
+
+    try {
+      const templaterApi = templaterPlugin.api;
+      if (templaterApi.parse_template) {
+        const content = await this.app.vault.read(file);
+        const processed = await templaterApi.parse_template({}, content);
+        if (typeof processed === "string" && processed !== content) {
+          await this.app.vault.modify(file, processed);
+        }
+      }
+    } catch {
+      // Templater processing failed, file already has raw content
+    }
   }
 
   async createRawDocument(): Promise<void> {
@@ -174,10 +267,12 @@ export default class OdailyHomePlugin extends Plugin {
     }
 
     const file = await this.app.vault.create(filePath, "");
-    await this.app.workspace.getLeaf("tab").openFile(file);
+    this.openFileSmart(file);
   }
 
-  private getDailyNotePath(): { fileName: string; folder: string } {
+  getDailyNotePath(date?: Date): { fileName: string; folder: string } {
+    const target = date ?? new Date();
+
     const dailyNotesPlugin = (this.app as typeof this.app & {
       internalPlugins?: {
         getPluginById(id: string): {
@@ -189,16 +284,15 @@ export default class OdailyHomePlugin extends Plugin {
 
     if (dailyNotesPlugin?.enabled && dailyNotesPlugin.instance?.options) {
       const { format = "YYYY-MM-DD", folder = "" } = dailyNotesPlugin.instance.options;
-      const baseName = (window as any).moment().format(format);
+      const baseName = (window as any).moment(target).format(format);
       return {
         fileName: folder ? `${folder}/${baseName}.md` : `${baseName}.md`,
         folder
       };
     }
 
-    const today = new Date();
     return {
-      fileName: `Odaily/${formatDate(today)}.md`,
+      fileName: `Odaily/${formatDate(target)}.md`,
       folder: "Odaily"
     };
   }
@@ -258,6 +352,242 @@ export default class OdailyHomePlugin extends Plugin {
     } finally {
       this.replacingLeaves.delete(leaf);
     }
+  }
+
+  async addMemo(date?: Date): Promise<void> {
+    const { fileName, folder } = this.getDailyNotePath(date);
+    const existing = this.app.vault.getAbstractFileByPath(fileName);
+    let file: TFile;
+
+    if (existing instanceof TFile) {
+      file = existing;
+    } else {
+      if (folder) {
+        await this.app.vault.createFolder(folder).catch(() => undefined);
+      }
+      const content = await this.getTemplateContent();
+      file = await this.app.vault.create(fileName, content);
+      await this.applyTemplater(file);
+    }
+
+    const target = date ?? new Date();
+    const isToday = target.toDateString() === new Date().toDateString();
+    const modalTitle = isToday
+      ? "今日想法"
+      : `${target.getMonth() + 1}月${target.getDate()}日想法`;
+
+    new MemoInputModal(this.app, modalTitle, async (text) => {
+      if (!text.trim()) return;
+      const now = new Date();
+      const ts = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      const memoLine = `\n#memo ${text.trim()}  ➕ ${ts}`;
+      await this.app.vault.append(file, memoLine);
+      const sidebarLeaf = this.app.workspace.getLeavesOfType(OD_SIDEBAR_VIEW_TYPE)[0];
+      if (sidebarLeaf?.view instanceof OdailySidebarView) {
+        void (sidebarLeaf.view as OdailySidebarView).renderSidebar();
+      }
+    }).open();
+  }
+
+  async addTodo(text: string, date?: Date): Promise<void> {
+    const todoFileSetting = this.settings.todoFile.trim();
+    let file: TFile;
+
+    if (todoFileSetting) {
+      // Fixed file mode
+      const normalized = todoFileSetting.replace(/\.md$/, "") + ".md";
+      const existing = this.app.vault.getAbstractFileByPath(normalized);
+      if (existing instanceof TFile) {
+        file = existing;
+      } else {
+        const parts = normalized.split("/");
+        if (parts.length > 1) {
+          await this.app.vault.createFolder(parts.slice(0, -1).join("/")).catch(() => undefined);
+        }
+        file = await this.app.vault.create(normalized, "");
+      }
+    } else {
+      // Daily note mode
+      const { fileName: dnName, folder } = this.getDailyNotePath(date);
+      const existing = this.app.vault.getAbstractFileByPath(dnName);
+      if (existing instanceof TFile) {
+        file = existing;
+      } else {
+        if (folder) {
+          await this.app.vault.createFolder(folder).catch(() => undefined);
+        }
+        const content = await this.getTemplateContent();
+        file = await this.app.vault.create(dnName, content);
+        await this.applyTemplater(file);
+      }
+    }
+
+    const now = new Date();
+    const ts = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const todoLine = `- [ ] #task ${text.trim()} ➕ ${ts}\n`;
+
+    if (this.settings.todoPosition === "top") {
+      const currentContent = await this.app.vault.read(file);
+      await this.app.vault.modify(file, todoLine + currentContent);
+    } else {
+      await this.app.vault.append(file, "\n" + todoLine.trimEnd());
+    }
+
+    const sidebarLeaf = this.app.workspace.getLeavesOfType(OD_SIDEBAR_VIEW_TYPE)[0];
+    if (sidebarLeaf?.view instanceof OdailySidebarView) {
+      void (sidebarLeaf.view as OdailySidebarView).renderSidebar();
+    }
+  }
+}
+
+class TodoInputModal extends Modal {
+  private onSubmit: (text: string) => void;
+  private inputEl!: HTMLInputElement;
+
+  constructor(app: App, onSubmit: (text: string) => void) {
+    super(app);
+    this.onSubmit = onSubmit;
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.createEl("h3", { text: "新增待办" });
+
+    this.inputEl = contentEl.createEl("input", {
+      attr: { type: "text", placeholder: "输入待办事项..." }
+    });
+    Object.assign(this.inputEl.style, {
+      width: "100%",
+      padding: "8px 12px",
+      borderRadius: "6px",
+      border: "1px solid var(--background-modifier-border)",
+      background: "var(--background-primary)",
+      color: "var(--text-normal)",
+      fontSize: "14px",
+      outline: "none"
+    });
+
+    const btnRow = contentEl.createDiv();
+    Object.assign(btnRow.style, {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: "8px",
+      marginTop: "12px"
+    });
+
+    const cancelBtn = btnRow.createEl("button", { text: "取消" });
+    Object.assign(cancelBtn.style, {
+      padding: "6px 14px",
+      borderRadius: "4px",
+      border: "1px solid var(--background-modifier-border)",
+      background: "transparent",
+      color: "var(--text-muted)",
+      cursor: "pointer"
+    });
+    cancelBtn.addEventListener("click", () => this.close());
+
+    const confirmBtn = btnRow.createEl("button", { text: "保存" });
+    Object.assign(confirmBtn.style, {
+      padding: "6px 14px",
+      borderRadius: "4px",
+      border: "none",
+      background: "var(--text-accent)",
+      color: "var(--text-on-accent)",
+      cursor: "pointer"
+    });
+    confirmBtn.addEventListener("click", () => {
+      this.onSubmit(this.inputEl.value);
+      this.close();
+    });
+
+    this.inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        this.onSubmit(this.inputEl.value);
+        this.close();
+      }
+      if (e.key === "Escape") this.close();
+    });
+
+    setTimeout(() => this.inputEl.focus(), 50);
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+  }
+}
+
+class MemoInputModal extends Modal {
+  private onSubmit: (text: string) => void;
+  private title: string;
+  private inputEl!: HTMLInputElement;
+
+  constructor(app: App, title: string, onSubmit: (text: string) => void) {
+    super(app);
+    this.title = title;
+    this.onSubmit = onSubmit;
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.createEl("h3", { text: this.title });
+
+    this.inputEl = contentEl.createEl("input", {
+      cls: "odaily-memo-input",
+      attr: { type: "text", placeholder: "记录此刻的想法..." }
+    });
+    this.inputEl.style.width = "100%";
+    this.inputEl.style.padding = "8px 12px";
+    this.inputEl.style.borderRadius = "6px";
+    this.inputEl.style.border = "1px solid var(--background-modifier-border)";
+    this.inputEl.style.background = "var(--background-primary)";
+    this.inputEl.style.color = "var(--text-normal)";
+    this.inputEl.style.fontSize = "14px";
+    this.inputEl.style.outline = "none";
+
+    const btnRow = contentEl.createDiv({ cls: "odaily-memo-btnrow" });
+    btnRow.style.display = "flex";
+    btnRow.style.justifyContent = "flex-end";
+    btnRow.style.gap = "8px";
+    btnRow.style.marginTop = "12px";
+
+    const cancelBtn = btnRow.createEl("button", { text: "取消" });
+    cancelBtn.style.padding = "6px 14px";
+    cancelBtn.style.borderRadius = "4px";
+    cancelBtn.style.border = "1px solid var(--background-modifier-border)";
+    cancelBtn.style.background = "transparent";
+    cancelBtn.style.color = "var(--text-muted)";
+    cancelBtn.style.cursor = "pointer";
+    cancelBtn.addEventListener("click", () => this.close());
+
+    const confirmBtn = btnRow.createEl("button", { text: "保存" });
+    confirmBtn.style.padding = "6px 14px";
+    confirmBtn.style.borderRadius = "4px";
+    confirmBtn.style.border = "none";
+    confirmBtn.style.background = "var(--text-accent)";
+    confirmBtn.style.color = "var(--text-on-accent)";
+    confirmBtn.style.cursor = "pointer";
+    confirmBtn.addEventListener("click", () => {
+      this.onSubmit(this.inputEl.value);
+      this.close();
+    });
+
+    this.inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        this.onSubmit(this.inputEl.value);
+        this.close();
+      }
+      if (e.key === "Escape") {
+        this.close();
+      }
+    });
+
+    // Auto-focus
+    setTimeout(() => this.inputEl.focus(), 50);
+  }
+
+  onClose(): void {
+    const { contentEl } = this;
+    contentEl.empty();
   }
 }
 
@@ -319,13 +649,13 @@ class OdailyHomeView extends ItemView {
     const actionGrid = shell.createDiv({ cls: "odaily-home__actions" });
     this.createActionCard(actionGrid, {
       title: "快速笔记",
-      subtitle: "捕捉今日灵感",
+      subtitle: "捕捉今日想法",
       variant: "quick-note",
       onClick: () => void this.plugin.createNote()
     });
     this.createActionCard(actionGrid, {
       title: "新文档",
-      subtitle: "你在想什么？",
+      subtitle: "你在记录什么？",
       variant: "new-document",
       onClick: () => void this.plugin.createRawDocument()
     });
@@ -333,7 +663,11 @@ class OdailyHomeView extends ItemView {
       title: "待办列表",
       subtitle: "追踪你的任务",
       variant: "todo-list",
-      onClick: () => this.openTodoList()
+      onClick: () => {
+        new TodoInputModal(this.app, (text) => {
+          if (text.trim()) void this.plugin.addTodo(text);
+        }).open();
+      }
     });
 
     const searchButton = shell.createEl("button", {
@@ -515,17 +849,6 @@ class OdailyHomeView extends ItemView {
     return trimmed;
   }
 
-  private openTodoList(): void {
-    if (!this.plugin.findAndExecuteQuickAddCommand("todo")) {
-      const leaf = this.app.workspace.getLeaf("tab");
-      void leaf.setViewState({
-        type: "search",
-        state: { query: "task-todo:/- \\[ \\]/" },
-        active: true
-      });
-    }
-  }
-
   private createBottomBar(): void {
     const isDark = document.body.hasClass("theme-dark");
     const bottomBar = this.contentEl.createDiv({ cls: "odaily-home__bottom-bar" });
@@ -645,6 +968,10 @@ class OdailySidebarView extends ItemView {
     this.contentEl.empty();
   }
 
+  async renderSidebar(): Promise<void> {
+    await this.render();
+  }
+
   private async render(): Promise<void> {
     this.contentEl.empty();
     this.contentEl.addClass("odaily-sidebar");
@@ -653,6 +980,7 @@ class OdailySidebarView extends ItemView {
 
     const body = this.contentEl.createDiv({ cls: "odaily-sidebar__body" });
 
+    this.renderTodayMemos(body);
     this.renderTodayDocs(body);
     await this.renderTasks(body);
     await this.renderTodayCompleted(body);
@@ -690,6 +1018,10 @@ class OdailySidebarView extends ItemView {
     const todayBtn = nav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn odaily-sidebar__calendar-nav-btn--today", attr: { type: "button" } });
     todayBtn.createSpan({ text: "今天" });
     todayBtn.addEventListener("click", (e) => { e.stopPropagation(); this.selectedDate = new Date(); this.showMonthPicker = false; void this.render(); });
+
+    const diaryBtn = nav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": "打开日记" } });
+    setIcon(diaryBtn, "book-open");
+    diaryBtn.addEventListener("click", (e) => { e.stopPropagation(); void this.plugin.openDailyNote(sel); });
 
     const nextBtn = nav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": "后一天" } });
     setIcon(nextBtn, "chevron-right");
@@ -770,6 +1102,62 @@ class OdailySidebarView extends ItemView {
     }
   }
 
+  private async renderTodayMemos(parent: HTMLElement = this.contentEl): Promise<void> {
+    const sel = this.selectedDate;
+    const isToday = sel.toDateString() === new Date().toDateString();
+    const section = parent.createDiv({ cls: "odaily-sidebar__section" });
+    const headerEl = section.createEl("h3");
+    headerEl.createSpan({ text: isToday ? "今日想法" : `${sel.getMonth() + 1}月${sel.getDate()}日想法` });
+    const addBtn = headerEl.createEl("button", {
+      cls: "odaily-sidebar__add-btn",
+      attr: { "aria-label": "创建新想法" }
+    });
+    setIcon(addBtn, "plus");
+    addBtn.addEventListener("click", () => {
+      void this.plugin.addMemo(sel);
+    });
+
+    const { fileName } = this.plugin.getDailyNotePath(sel);
+    const file = this.app.vault.getAbstractFileByPath(fileName);
+    if (!(file instanceof TFile)) {
+      const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
+      setIcon(empty.createSpan(), "lightbulb");
+      empty.createSpan({ text: isToday ? "今日暂无日记" : "暂无日记" });
+      return;
+    }
+
+    const content = await this.app.vault.read(file);
+    const lines = content.split("\n");
+    const memos: { text: string; ts: string }[] = [];
+    for (const line of lines) {
+      const match = line.match(/^#memo\s+(.+?)\s*➕\s*(.+)/);
+      if (match) {
+        memos.push({ text: match[1].trim(), ts: match[2].trim() });
+      }
+    }
+
+    if (memos.length === 0) {
+      const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
+      setIcon(empty.createSpan(), "lightbulb");
+      empty.createSpan({ text: "还没有想法" });
+      return;
+    }
+
+    const list = section.createDiv({ cls: "odaily-sidebar__list" });
+    for (const memo of memos) {
+      const item = list.createDiv({ cls: "odaily-sidebar__item" });
+      setIcon(item.createSpan({ cls: "odaily-sidebar__item-icon" }), "lightbulb");
+      const body = item.createDiv({ cls: "odaily-sidebar__item-body" });
+      body.createDiv({ cls: "odaily-sidebar__item-title", text: memo.text });
+      body.createDiv({ cls: "odaily-sidebar__item-meta", text: memo.ts });
+      item.addEventListener("click", () => {
+        if (file) {
+          this.plugin.openFileSmart(file);
+        }
+      });
+    }
+  }
+
   private renderTodayDocs(parent: HTMLElement = this.contentEl): void {
     const sel = this.selectedDate;
     const isToday = sel.toDateString() === new Date().toDateString();
@@ -802,7 +1190,7 @@ class OdailySidebarView extends ItemView {
         text: formatRelativeTime(file.stat.mtime)
       });
       item.addEventListener("click", () => {
-        void this.app.workspace.getLeaf("tab").openFile(file);
+        this.plugin.openFileSmart(file);
       });
     }
   }
@@ -816,8 +1204,21 @@ class OdailySidebarView extends ItemView {
     const sel = this.selectedDate;
     const isToday = sel.toDateString() === new Date().toDateString();
     const section = parent.createDiv({ cls: "odaily-sidebar__section" });
-    const title = isToday ? "未完成任务" : `${sel.getMonth() + 1}月${sel.getDate()}日任务`;
-    section.createEl("h3", { text: title });
+    const title = isToday ? "待办事项" : `${sel.getMonth() + 1}月${sel.getDate()}日事项`;
+    const headerEl = section.createEl("h3");
+    headerEl.createSpan({ text: title });
+    const addBtn = headerEl.createEl("button", {
+      cls: "odaily-sidebar__add-btn",
+      attr: { "aria-label": "创建新事项" }
+    });
+    setIcon(addBtn, "plus");
+    addBtn.addEventListener("click", () => {
+      new TodoInputModal(this.app, (text) => {
+        if (text.trim()) {
+          void this.plugin.addTodo(text, sel);
+        }
+      }).open();
+    });
 
     const dayStart = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate()).getTime();
     const dayEnd = dayStart + 86400000;
@@ -890,7 +1291,7 @@ class OdailySidebarView extends ItemView {
       });
 
       item.addEventListener("click", () => {
-        void this.app.workspace.getLeaf("tab").openFile(task.file);
+        this.plugin.openFileSmart(task.file);
       });
     }
   }
@@ -918,7 +1319,7 @@ class OdailySidebarView extends ItemView {
     const timer = setTimeout(() => {
       this.pendingTimers.delete(key);
       void this.executeCompletion(task, item);
-    }, 2000);
+    }, 1000);
 
     this.pendingTimers.set(key, timer);
   }
@@ -993,7 +1394,7 @@ class OdailySidebarView extends ItemView {
     body.createDiv({ cls: "odaily-sidebar__item-title", text });
     body.createDiv({ cls: "odaily-sidebar__item-meta", text: `${completedTs}  ·  ${file.basename}` });
     item.addEventListener("click", () => {
-      void this.app.workspace.getLeaf("tab").openFile(file);
+      this.plugin.openFileSmart(file);
     });
   }
 
@@ -1049,7 +1450,7 @@ class OdailySidebarView extends ItemView {
         text: `${task.completedTs}  ·  ${task.file.basename}`
       });
       item.addEventListener("click", () => {
-        void this.app.workspace.getLeaf("tab").openFile(task.file);
+        this.plugin.openFileSmart(task.file);
       });
     }
   }
@@ -1145,14 +1546,50 @@ class OdailySettingTab extends PluginSettingTab {
           })
       );
 
+    new Setting(containerEl)
+      .setName("待办添加目标文件")
+      .setDesc("新待办写入的文件路径。留空则写入当天日记。如: 00_inbox/待办清单。")
+      .addText((text) =>
+        text
+          .setPlaceholder("留空 = 当天日记")
+          .setValue(this.plugin.settings.todoFile)
+          .onChange(async (value) => {
+            this.plugin.settings.todoFile = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("待办追加位置")
+      .setDesc("新待办追加到文件最前面还是最后面。")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("bottom", "文件末尾")
+          .addOption("top", "文件开头")
+          .setValue(this.plugin.settings.todoPosition)
+          .onChange(async (value: string) => {
+            this.plugin.settings.todoPosition = value as "top" | "bottom";
+            await this.plugin.saveSettings();
+          })
+      );
+
     const help = containerEl.createDiv({ cls: "setting-item-description" });
     help.style.marginTop = "24px";
     help.style.lineHeight = "1.8";
-    help.innerHTML =
-      '<b>使用说明</b><br>' +
-      "1. 将图片放入 Vault 中（如 <code>Attachments/bg.jpg</code>），在上方输入该路径即可<br>" +
-      '2. 也可输入网络图片链接，如 <code>https://example.com/bg.jpg</code><br>' +
-      '3. 支持 CSS 原生写法：颜色 <code>#f0f0f0</code>、渐变 <code>linear-gradient(135deg, #667eea, #764ba2)</code><br>' +
-      "4. 浅色和深色模式可分别设置不同的背景";
+    help.createEl("b", { text: "使用说明" });
+    help.createEl("br");
+    help.createSpan({ text: "1. 将图片放入 Vault 中（如 " });
+    help.createEl("code", { text: "Attachments/bg.jpg" });
+    help.createSpan({ text: "），在上方输入该路径即可" });
+    help.createEl("br");
+    help.createSpan({ text: "2. 也可输入网络图片链接，如 " });
+    help.createEl("code", { text: "https://example.com/bg.jpg" });
+    help.createEl("br");
+    help.createSpan({ text: "3. 支持 CSS 原生写法：颜色 " });
+    help.createEl("code", { text: "#f0f0f0" });
+    help.createSpan({ text: "、渐变 " });
+    help.createEl("code", { text: "linear-gradient(135deg, #667eea, #764ba2)" });
+    help.createEl("br");
+    help.createSpan({ text: "4. 浅色和深色模式可分别设置不同的背景" });
   }
 }
