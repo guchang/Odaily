@@ -35,6 +35,127 @@ const REMINDERS_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
   <path fill="#c7c7cc" fill-rule="evenodd" d="M44 29h60a.94477.94477 0 0 1 1 1h0a.94477.94477 0 0 1-1 1H44a.94477.94477 0 0 1-1-1h0A1.07539 1.07539 0 0 1 44 29ZM44 59h60a.94477.94477 0 0 1 1 1h0a.94477.94477 0 0 1-1 1H44a.94477.94477 0 0 1-1-1h0A1.07539 1.07539 0 0 1 44 59zM44 89h60a.94477.94477 0 0 1 1 1h0a.94477.94477 0 0 1-1 1H44a.94477.94477 0 0 1-1-1h0A1.07539 1.07539 0 0 1 44 89z"/>
 </svg>`;
 
+// ── i18n ────────────────────────────────────────
+
+function isZh(): boolean {
+  const lang = localStorage.getItem("language") || navigator.language || "en";
+  return lang.startsWith("zh");
+}
+
+const S: Record<string, string> = {};
+
+function initLocale(): void {
+  const z = isZh();
+  S["cmd.openHome"] = z ? "打开 Odaily 主页" : "Open Odaily home";
+  S["cmd.openSidebar"] = z ? "打开 Odaily 侧边栏" : "Open Odaily sidebar";
+  S["cmd.addMemo"] = z ? "Odaily: 新增想法" : "Odaily: add memo";
+  S["cmd.addTodo"] = z ? "Odaily: 新增待办" : "Odaily: add todo";
+  S["home.create"] = z ? "创建" : "Create";
+  S["home.quickNote"] = z ? "快速笔记" : "Quick Note";
+  S["home.quickNoteSub"] = z ? "捕捉今日想法" : "Capture";
+  S["home.newDoc"] = z ? "新文档" : "New Doc";
+  S["home.newDocSub"] = z ? "你在记录什么？" : "Record";
+  S["home.todoList"] = z ? "待办列表" : "Todo List";
+  S["home.todoListSub"] = z ? "追踪你的任务" : "Track";
+  S["home.quickOpen"] = z ? "快速开启" : "Quick Open";
+  S["home.recentFiles"] = z ? "最近打开的文档" : "Recent Files";
+  S["home.noRecent"] = z ? "还没有最近打开的文档" : "No recent files";
+  S["home.refresh"] = z ? "刷新" : "Refresh";
+  S["home.settings"] = z ? "设置" : "Settings";
+  S["home.switchLight"] = z ? "切换浅色模式" : "Switch to light mode";
+  S["home.switchDark"] = z ? "切换深色模式" : "Switch to dark mode";
+  S["sidebar.title"] = z ? "Odaily 概览" : "Odaily Overview";
+  S["sidebar.today"] = z ? "今天" : "Today";
+  S["sidebar.prevDay"] = z ? "前一天" : "Previous day";
+  S["sidebar.nextDay"] = z ? "后一天" : "Next day";
+  S["sidebar.openDiary"] = z ? "打开日记" : "Open daily note";
+  S["sidebar.prevMonth"] = z ? "上个月" : "Previous month";
+  S["sidebar.nextMonth"] = z ? "下个月" : "Next month";
+  S["empty.noDiaryToday"] = z ? "今日暂无日记" : "No daily note today";
+  S["empty.noDiary"] = z ? "暂无日记" : "No daily note";
+  S["empty.noMemos"] = z ? "还没有想法" : "No memos yet";
+  S["empty.noDocs"] = z ? "暂无" : "None";
+  S["empty.noTodos"] = z ? "没有待办事项" : "No pending tasks";
+  S["empty.noDone"] = z ? "没有已完成的事项" : "No completed tasks";
+  S["action.addMemo"] = z ? "创建新想法" : "Add memo";
+  S["action.addTodo"] = z ? "创建新事项" : "Add task";
+  S["modal.addTodoTitle"] = z ? "新增待办" : "Add Todo";
+  S["modal.todoPlaceholder"] = z ? "输入待办事项..." : "Enter a task...";
+  S["modal.memoPlaceholder"] = z ? "记录此刻的想法..." : "Capture this thought...";
+  S["modal.cancel"] = z ? "取消" : "Cancel";
+  S["modal.save"] = z ? "保存" : "Save";
+  S["notice.noSwitcher"] = z ? "快速切换器不可用" : "Quick switcher is not available.";
+  S["settings.title"] = z ? "Odaily Home 设置" : "Odaily Home Settings";
+  S["settings.lightBg"] = z ? "浅色模式背景" : "Light Mode Background";
+  S["settings.lightBgDesc"] = z ? "支持：Vault 图片路径（如 Attachments/bg.jpg）、外部链接、CSS 颜色、渐变。留空使用默认。" : "Supports: vault image path (e.g. Attachments/bg.jpg), external URLs, CSS colors, gradients. Leave empty for default.";
+  S["settings.lightPh"] = z ? "如: Attachments/light.jpg 或 #f0f0f0" : "e.g.: Attachments/light.jpg or #f0f0f0";
+  S["settings.darkBg"] = z ? "深色模式背景" : "Dark Mode Background";
+  S["settings.darkBgDesc"] = z ? "支持：Vault 图片路径（如 Attachments/bg.jpg）、外部链接、CSS 颜色、渐变。留空使用默认。" : "Supports: vault image path (e.g. Attachments/bg.jpg), external URLs, CSS colors, gradients. Leave empty for default.";
+  S["settings.darkPh"] = z ? "如: Attachments/dark.jpg 或 #1a1a2e" : "e.g.: Attachments/dark.jpg or #1a1a2e";
+  S["settings.taskTags"] = z ? "未完成任务筛选标签" : "Task Filter Tags";
+  S["settings.taskTagsDesc"] = z ? "只显示包含指定标签的任务，多个标签用逗号分隔。如: todo, 待办。留空显示所有未完成任务。" : "Only show tasks with specified tags, separated by commas. e.g.: todo, task. Leave empty to show all.";
+  S["settings.taskTagsPh"] = z ? "如: todo, 待办" : "e.g.: todo, task";
+  S["settings.todoFile"] = z ? "待办添加目标文件" : "Todo Target File";
+  S["settings.todoFileDesc"] = z ? "新待办写入的文件路径。留空则写入当天日记。如: 00_inbox/待办清单。" : "File path for new todos. Leave empty to use daily notes. e.g.: 00_inbox/todos.";
+  S["settings.todoFilePh"] = z ? "留空 = 当天日记" : "Leave empty = daily note";
+  S["settings.todoPos"] = z ? "待办追加位置" : "Todo Append Position";
+  S["settings.todoPosDesc"] = z ? "新待办追加到文件最前面还是最后面。" : "Append new todos to the top or bottom of the file.";
+  S["settings.posBottom"] = z ? "文件末尾" : "Bottom of file";
+  S["settings.posTop"] = z ? "文件开头" : "Top of file";
+  S["settings.helpTitle"] = z ? "使用说明" : "Instructions";
+  S["settings.help1a"] = z ? "1. 将图片放入 Vault 中（如 " : "1. Place an image in your vault (e.g. ";
+  S["settings.help1b"] = z ? "），在上方输入该路径即可" : ") and enter the path above";
+  S["settings.help2a"] = z ? "2. 也可输入网络图片链接，如 " : "2. Or enter an image URL, e.g. ";
+  S["settings.help3a"] = z ? "3. 支持 CSS 原生写法：颜色 " : "3. Supports native CSS: color ";
+  S["settings.help3b"] = z ? "、渐变 " : ", gradient ";
+  S["settings.help4"] = z ? "4. 浅色和深色模式可分别设置不同的背景" : "4. Light and dark modes can have different backgrounds";
+  S["rel.justNow"] = z ? "刚刚" : "just now";
+  S["rel.minutesAgo"] = z ? " 分钟前" : " min ago";
+  S["rel.hoursAgo"] = z ? " 小时前" : " hours ago";
+  S["rel.daysAgo"] = z ? " 天前" : " days ago";
+}
+
+function t(key: string): string {
+  return S[key] ?? key;
+}
+
+function fmtMD(d: Date): string {
+  if (isZh()) return `${d.getMonth() + 1}月${d.getDate()}日`;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function fmtMonth(d: Date): string {
+  if (isZh()) return `${d.getMonth() + 1}月`;
+  return d.toLocaleDateString("en-US", { month: "short" });
+}
+
+function fmtMonthYear(d: Date): string {
+  if (isZh()) return `${d.getFullYear()}年${d.getMonth() + 1}月`;
+  return d.toLocaleDateString("en-US", { year: "numeric", month: "long" });
+}
+
+function getDowLabels(): string[] {
+  return isZh()
+    ? ["日", "一", "二", "三", "四", "五", "六"]
+    : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+}
+
+function sectionTitle(type: "memo" | "doc" | "todo" | "done", date: Date, isToday: boolean): string {
+  const z = isZh();
+  const md = fmtMD(date);
+  const map: Record<string, { today: string; date: string }> = {
+    memo: z ? { today: "今日想法", date: `${md}想法` } : { today: "Today's Memos", date: `${md} Memos` },
+    doc: z ? { today: "今日文档", date: `${md}文档` } : { today: "Today's Docs", date: `${md} Docs` },
+    todo: z ? { today: "待办事项", date: `${md}事项` } : { today: "Todos", date: `${md} Todos` },
+    done: z ? { today: "今日完成", date: `${md}完成` } : { today: "Done Today", date: `Completed ${md}` },
+  };
+  return isToday ? map[type].today : map[type].date;
+}
+
+const doneTodayTitle = (): string => isZh() ? "今日完成" : "Done Today";
+
+// ── Plugin ──────────────────────────────────────
+
 interface ObsidianCommandManager {
   findCommand(id: string): unknown;
   executeCommandById(id: string): boolean;
@@ -62,6 +183,7 @@ export default class OdailyHomePlugin extends Plugin {
 
   async onload(): Promise<void> {
     await this.loadSettings();
+    initLocale();
 
     this.registerView(
       OD_VIEW_TYPE,
@@ -75,25 +197,25 @@ export default class OdailyHomePlugin extends Plugin {
 
     this.addCommand({
       id: "open-odaily-home",
-      name: "Open Odaily home",
+      name: t("cmd.openHome"),
       callback: () => this.openHomeInNewTab()
     });
 
     this.addCommand({
       id: "open-odaily-sidebar",
-      name: "Open Odaily sidebar",
+      name: t("cmd.openSidebar"),
       callback: () => this.openSidebar()
     });
 
     this.addCommand({
       id: "odaily-add-memo",
-      name: "Odaily: add memo",
+      name: t("cmd.addMemo"),
       callback: () => void this.addMemo()
     });
 
     this.addCommand({
       id: "odaily-add-todo",
-      name: "Odaily: add todo",
+      name: t("cmd.addTodo"),
       callback: () => {
         new TodoInputModal(this.app, (text) => {
           if (text.trim()) void this.addTodo(text);
@@ -349,7 +471,7 @@ export default class OdailyHomePlugin extends Plugin {
 
   openQuickSwitcher(): void {
     if (!this.executeCommandById("switcher:open")) {
-      new Notice("Quick switcher is not available.");
+      new Notice(t("notice.noSwitcher"));
     }
   }
 
@@ -389,9 +511,7 @@ export default class OdailyHomePlugin extends Plugin {
 
     const target = date ?? new Date();
     const isToday = target.toDateString() === new Date().toDateString();
-    const modalTitle = isToday
-      ? "今日想法"
-      : `${target.getMonth() + 1}月${target.getDate()}日想法`;
+    const modalTitle = sectionTitle("memo", target, isToday);
 
     new MemoInputModal(this.app, modalTitle, async (text) => {
       if (!text.trim()) return;
@@ -457,6 +577,8 @@ export default class OdailyHomePlugin extends Plugin {
   }
 }
 
+// ── Modals ──────────────────────────────────────
+
 class TodoInputModal extends Modal {
   private onSubmit: (text: string) => void;
   private inputEl!: HTMLInputElement;
@@ -468,10 +590,10 @@ class TodoInputModal extends Modal {
 
   onOpen(): void {
     const { contentEl } = this;
-    contentEl.createEl("h3", { text: "新增待办" });
+    contentEl.createEl("h3", { text: t("modal.addTodoTitle") });
 
     this.inputEl = contentEl.createEl("input", {
-      attr: { type: "text", placeholder: "输入待办事项..." }
+      attr: { type: "text", placeholder: t("modal.todoPlaceholder") }
     });
     Object.assign(this.inputEl.style, {
       width: "100%",
@@ -492,7 +614,7 @@ class TodoInputModal extends Modal {
       marginTop: "12px"
     });
 
-    const cancelBtn = btnRow.createEl("button", { text: "取消" });
+    const cancelBtn = btnRow.createEl("button", { text: t("modal.cancel") });
     Object.assign(cancelBtn.style, {
       padding: "6px 14px",
       borderRadius: "4px",
@@ -503,7 +625,7 @@ class TodoInputModal extends Modal {
     });
     cancelBtn.addEventListener("click", () => this.close());
 
-    const confirmBtn = btnRow.createEl("button", { text: "保存" });
+    const confirmBtn = btnRow.createEl("button", { text: t("modal.save") });
     Object.assign(confirmBtn.style, {
       padding: "6px 14px",
       borderRadius: "4px",
@@ -550,7 +672,7 @@ class MemoInputModal extends Modal {
 
     this.inputEl = contentEl.createEl("input", {
       cls: "odaily-memo-input",
-      attr: { type: "text", placeholder: "记录此刻的想法..." }
+      attr: { type: "text", placeholder: t("modal.memoPlaceholder") }
     });
     this.inputEl.style.width = "100%";
     this.inputEl.style.padding = "8px 12px";
@@ -567,7 +689,7 @@ class MemoInputModal extends Modal {
     btnRow.style.gap = "8px";
     btnRow.style.marginTop = "12px";
 
-    const cancelBtn = btnRow.createEl("button", { text: "取消" });
+    const cancelBtn = btnRow.createEl("button", { text: t("modal.cancel") });
     cancelBtn.style.padding = "6px 14px";
     cancelBtn.style.borderRadius = "4px";
     cancelBtn.style.border = "1px solid var(--background-modifier-border)";
@@ -576,7 +698,7 @@ class MemoInputModal extends Modal {
     cancelBtn.style.cursor = "pointer";
     cancelBtn.addEventListener("click", () => this.close());
 
-    const confirmBtn = btnRow.createEl("button", { text: "保存" });
+    const confirmBtn = btnRow.createEl("button", { text: t("modal.save") });
     confirmBtn.style.padding = "6px 14px";
     confirmBtn.style.borderRadius = "4px";
     confirmBtn.style.border = "none";
@@ -607,6 +729,8 @@ class MemoInputModal extends Modal {
     contentEl.empty();
   }
 }
+
+// ── Home View ───────────────────────────────────
 
 class OdailyHomeView extends ItemView {
   constructor(
@@ -661,24 +785,24 @@ class OdailyHomeView extends ItemView {
     const shell = this.contentEl.createDiv({ cls: "odaily-home__shell" });
 
     const header = shell.createDiv({ cls: "odaily-home__header" });
-    header.createEl("h1", { text: "创建" });
+    header.createEl("h1", { text: t("home.create") });
 
     const actionGrid = shell.createDiv({ cls: "odaily-home__actions" });
     this.createActionCard(actionGrid, {
-      title: "快速笔记",
-      subtitle: "捕捉今日想法",
+      title: t("home.quickNote"),
+      subtitle: t("home.quickNoteSub"),
       variant: "quick-note",
       onClick: () => void this.plugin.createNote()
     });
     this.createActionCard(actionGrid, {
-      title: "新文档",
-      subtitle: "你在记录什么？",
+      title: t("home.newDoc"),
+      subtitle: t("home.newDocSub"),
       variant: "new-document",
       onClick: () => void this.plugin.createRawDocument()
     });
     this.createActionCard(actionGrid, {
-      title: "待办列表",
-      subtitle: "追踪你的任务",
+      title: t("home.todoList"),
+      subtitle: t("home.todoListSub"),
       variant: "todo-list",
       onClick: () => {
         new TodoInputModal(this.app, (text) => {
@@ -694,17 +818,17 @@ class OdailyHomeView extends ItemView {
       }
     });
     setIcon(searchButton.createSpan({ cls: "odaily-home__search-icon" }), "search");
-    searchButton.createSpan({ text: "快速开启" });
+    searchButton.createSpan({ text: t("home.quickOpen") });
     searchButton.addEventListener("click", () => {
       void this.plugin.openQuickSwitcher();
     });
 
     const recentPanel = shell.createDiv({ cls: "odaily-home__recent-panel" });
     const recentHeader = recentPanel.createDiv({ cls: "odaily-home__recent-header" });
-    recentHeader.createEl("h2", { text: "最近打开的文档" });
+    recentHeader.createEl("h2", { text: t("home.recentFiles") });
     const refreshBtn = recentHeader.createEl("button", {
       cls: "odaily-home__refresh-btn",
-      attr: { type: "button", "aria-label": "刷新" }
+      attr: { type: "button", "aria-label": t("home.refresh") }
     });
     setIcon(refreshBtn, "refresh-cw");
     refreshBtn.addEventListener("click", (e) => {
@@ -725,7 +849,7 @@ class OdailyHomeView extends ItemView {
     if (files.length === 0) {
       const empty = list.createDiv({ cls: "odaily-home__empty" });
       setIcon(empty.createSpan(), "file-text");
-      empty.createSpan({ text: "还没有最近打开的文档" });
+      empty.createSpan({ text: t("home.noRecent") });
     } else {
       for (const file of files) {
         this.createRecentItem(list, file);
@@ -758,7 +882,7 @@ class OdailyHomeView extends ItemView {
     if (options.variant === "quick-note") {
       const today = new Date();
       const badge = iconWrap.createDiv({ cls: "odaily-home__date-badge" });
-      badge.createSpan({ cls: "odaily-home__date-month", text: `${today.getMonth() + 1}月` });
+      badge.createSpan({ cls: "odaily-home__date-month", text: fmtMonth(today) });
       badge.createSpan({ cls: "odaily-home__date-day", text: String(today.getDate()) });
     } else if (options.variant === "new-document") {
       iconWrap.innerHTML = NOTES_ICON_SVG;
@@ -844,25 +968,25 @@ class OdailyHomeView extends ItemView {
     const trimmed = raw.trim();
     if (!trimmed) return null;
 
-    // 已经是完整 CSS 值（url(...)、颜色、渐变）
+    // Already a full CSS value (url(...), color, gradient)
     const cssPrefixes = ["#", "rgb", "hsl", "linear-gradient", "radial-gradient", "url("];
     if (cssPrefixes.some((p) => trimmed.startsWith(p))) {
       return trimmed;
     }
 
-    // 外部链接
+    // External URL
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
       return `url(${trimmed})`;
     }
 
-    // vault 内图片路径，转换为本地资源 URL
+    // Vault image path
     const file = this.app.vault.getAbstractFileByPath(trimmed);
     if (file instanceof TFile) {
       const resourcePath = this.app.vault.getResourcePath(file);
       return `url(${resourcePath})`;
     }
 
-    // 兜底：当作普通 CSS 值
+    // Fallback: treat as plain CSS value
     return trimmed;
   }
 
@@ -872,7 +996,7 @@ class OdailyHomeView extends ItemView {
 
     const settingsBtn = bottomBar.createEl("button", {
       cls: "odaily-home__bottom-btn",
-      attr: { type: "button", "aria-label": "设置" }
+      attr: { type: "button", "aria-label": t("home.settings") }
     });
     setIcon(settingsBtn, "settings");
     settingsBtn.addEventListener("click", () => {
@@ -881,7 +1005,7 @@ class OdailyHomeView extends ItemView {
 
     const themeBtn = bottomBar.createEl("button", {
       cls: "odaily-home__bottom-btn",
-      attr: { type: "button", "aria-label": isDark ? "切换浅色模式" : "切换深色模式" }
+      attr: { type: "button", "aria-label": isDark ? t("home.switchLight") : t("home.switchDark") }
     });
     setIcon(themeBtn, isDark ? "sun" : "moon");
     themeBtn.addEventListener("click", () => {
@@ -912,6 +1036,8 @@ class OdailyHomeView extends ItemView {
     }, 100);
   }
 }
+
+// ── Task helpers ────────────────────────────────
 
 interface TaskInfo {
   file: TFile;
@@ -953,6 +1079,8 @@ function formatTaskTime(ts: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// ── Sidebar View ────────────────────────────────
+
 class OdailySidebarView extends ItemView {
   private pendingTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private selectedDate: Date = new Date();
@@ -970,7 +1098,7 @@ class OdailySidebarView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Odaily 概览";
+    return t("sidebar.title");
   }
 
   getIcon(): string {
@@ -1008,7 +1136,6 @@ class OdailySidebarView extends ItemView {
 
     const calHeader = cal.createDiv({ cls: "odaily-sidebar__calendar-header" });
     const sel = this.selectedDate;
-    const fmtMD = (d: Date) => `${d.getMonth() + 1}月${d.getDate()}日`;
 
     const weekStart = new Date(sel);
     weekStart.setDate(sel.getDate() - sel.getDay());
@@ -1028,26 +1155,25 @@ class OdailySidebarView extends ItemView {
 
     const nav = calHeader.createDiv({ cls: "odaily-sidebar__calendar-nav" });
 
-    const prevBtn = nav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": "前一天" } });
+    const prevBtn = nav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": t("sidebar.prevDay") } });
     setIcon(prevBtn, "chevron-left");
     prevBtn.addEventListener("click", (e) => { e.stopPropagation(); const d = new Date(sel); d.setDate(sel.getDate() - 1); this.selectedDate = d; void this.render(); });
 
     const todayBtn = nav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn odaily-sidebar__calendar-nav-btn--today", attr: { type: "button" } });
-    todayBtn.createSpan({ text: "今天" });
+    todayBtn.createSpan({ text: t("sidebar.today") });
     todayBtn.addEventListener("click", (e) => { e.stopPropagation(); this.selectedDate = new Date(); this.showMonthPicker = false; void this.render(); });
 
-    const diaryBtn = nav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": "打开日记" } });
+    const diaryBtn = nav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": t("sidebar.openDiary") } });
     setIcon(diaryBtn, "book-open");
     diaryBtn.addEventListener("click", (e) => { e.stopPropagation(); void this.plugin.openDailyNote(sel); });
 
-    const nextBtn = nav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": "后一天" } });
+    const nextBtn = nav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": t("sidebar.nextDay") } });
     setIcon(nextBtn, "chevron-right");
     nextBtn.addEventListener("click", (e) => { e.stopPropagation(); const d = new Date(sel); d.setDate(sel.getDate() + 1); this.selectedDate = d; void this.render(); });
 
     // Day-of-week headers
     const dowRow = cal.createDiv({ cls: "odaily-sidebar__calendar-dow" });
-    const dowLabels = ["日", "一", "二", "三", "四", "五", "六"];
-    for (const d of dowLabels) {
+    for (const d of getDowLabels()) {
       dowRow.createSpan({ cls: "odaily-sidebar__calendar-dow-item", text: d });
     }
 
@@ -1056,7 +1182,7 @@ class OdailySidebarView extends ItemView {
     if (this.showMonthPicker) {
       // Month navigation row
       const monthNav = cal.createDiv({ cls: "odaily-sidebar__calendar-monthnav" });
-      const prevMonBtn = monthNav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": "上个月" } });
+      const prevMonBtn = monthNav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": t("sidebar.prevMonth") } });
       setIcon(prevMonBtn, "chevron-left");
       prevMonBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -1064,9 +1190,9 @@ class OdailySidebarView extends ItemView {
         void this.render();
       });
 
-      monthNav.createSpan({ cls: "odaily-sidebar__calendar-monthlabel", text: `${sel.getFullYear()}年${sel.getMonth() + 1}月` });
+      monthNav.createSpan({ cls: "odaily-sidebar__calendar-monthlabel", text: fmtMonthYear(sel) });
 
-      const nextMonBtn = monthNav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": "下个月" } });
+      const nextMonBtn = monthNav.createEl("button", { cls: "odaily-sidebar__calendar-nav-btn", attr: { type: "button", "aria-label": t("sidebar.nextMonth") } });
       setIcon(nextMonBtn, "chevron-right");
       nextMonBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -1124,10 +1250,10 @@ class OdailySidebarView extends ItemView {
     const isToday = sel.toDateString() === new Date().toDateString();
     const section = parent.createDiv({ cls: "odaily-sidebar__section" });
     const headerEl = section.createEl("h3");
-    headerEl.createSpan({ text: isToday ? "今日想法" : `${sel.getMonth() + 1}月${sel.getDate()}日想法` });
+    headerEl.createSpan({ text: sectionTitle("memo", sel, isToday) });
     const addBtn = headerEl.createEl("button", {
       cls: "odaily-sidebar__add-btn",
-      attr: { "aria-label": "创建新想法" }
+      attr: { "aria-label": t("action.addMemo") }
     });
     setIcon(addBtn, "plus");
     addBtn.addEventListener("click", () => {
@@ -1139,7 +1265,7 @@ class OdailySidebarView extends ItemView {
     if (!(file instanceof TFile)) {
       const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
       setIcon(empty.createSpan(), "lightbulb");
-      empty.createSpan({ text: isToday ? "今日暂无日记" : "暂无日记" });
+      empty.createSpan({ text: isToday ? t("empty.noDiaryToday") : t("empty.noDiary") });
       return;
     }
 
@@ -1156,7 +1282,7 @@ class OdailySidebarView extends ItemView {
     if (memos.length === 0) {
       const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
       setIcon(empty.createSpan(), "lightbulb");
-      empty.createSpan({ text: "还没有想法" });
+      empty.createSpan({ text: t("empty.noMemos") });
       return;
     }
 
@@ -1179,7 +1305,7 @@ class OdailySidebarView extends ItemView {
     const sel = this.selectedDate;
     const isToday = sel.toDateString() === new Date().toDateString();
     const section = parent.createDiv({ cls: "odaily-sidebar__section" });
-    section.createEl("h3", { text: isToday ? "今日文档" : `${sel.getMonth() + 1}月${sel.getDate()}日文档` });
+    section.createEl("h3", { text: sectionTitle("doc", sel, isToday) });
 
     const dayStart = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate()).getTime();
     const dayEnd = dayStart + 86400000;
@@ -1192,7 +1318,7 @@ class OdailySidebarView extends ItemView {
     if (todayFiles.length === 0) {
       const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
       setIcon(empty.createSpan(), "file-text");
-      empty.createSpan({ text: "暂无" });
+      empty.createSpan({ text: t("empty.noDocs") });
       return;
     }
 
@@ -1221,12 +1347,11 @@ class OdailySidebarView extends ItemView {
     const sel = this.selectedDate;
     const isToday = sel.toDateString() === new Date().toDateString();
     const section = parent.createDiv({ cls: "odaily-sidebar__section" });
-    const title = isToday ? "待办事项" : `${sel.getMonth() + 1}月${sel.getDate()}日事项`;
     const headerEl = section.createEl("h3");
-    headerEl.createSpan({ text: title });
+    headerEl.createSpan({ text: sectionTitle("todo", sel, isToday) });
     const addBtn = headerEl.createEl("button", {
       cls: "odaily-sidebar__add-btn",
-      attr: { "aria-label": "创建新事项" }
+      attr: { "aria-label": t("action.addTodo") }
     });
     setIcon(addBtn, "plus");
     addBtn.addEventListener("click", () => {
@@ -1272,7 +1397,7 @@ class OdailySidebarView extends ItemView {
     if (tasks.length === 0) {
       const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
       setIcon(empty.createSpan(), "clipboard-list");
-      empty.createSpan({ text: "没有待办事项" });
+      empty.createSpan({ text: t("empty.noTodos") });
       return;
     }
 
@@ -1380,11 +1505,12 @@ class OdailySidebarView extends ItemView {
   }
 
   private addToTodayCompleted(text: string, file: TFile, completedTs: string): void {
+    const dt = doneTodayTitle();
     const scrollBody = this.contentEl.querySelector(".odaily-sidebar__body") ?? this.contentEl;
     const sections = scrollBody.querySelectorAll(".odaily-sidebar__section");
     let doneSection: HTMLElement | null = null;
     for (const s of sections) {
-      if (s.querySelector("h3")?.textContent === "今日完成") {
+      if (s.querySelector("h3")?.textContent === dt) {
         doneSection = s as HTMLElement;
         break;
       }
@@ -1392,7 +1518,7 @@ class OdailySidebarView extends ItemView {
 
     if (!doneSection) {
       doneSection = scrollBody.createDiv({ cls: "odaily-sidebar__section" });
-      doneSection.createEl("h3", { text: "今日完成" });
+      doneSection.createEl("h3", { text: dt });
     }
 
     // Remove empty state if present
@@ -1419,7 +1545,7 @@ class OdailySidebarView extends ItemView {
     const sel = this.selectedDate;
     const isToday = sel.toDateString() === new Date().toDateString();
     const section = parent.createDiv({ cls: "odaily-sidebar__section" });
-    section.createEl("h3", { text: isToday ? "今日完成" : `${sel.getMonth() + 1}月${sel.getDate()}日完成` });
+    section.createEl("h3", { text: sectionTitle("done", sel, isToday) });
 
     const dateStr = `${sel.getFullYear()}-${String(sel.getMonth() + 1).padStart(2, "0")}-${String(sel.getDate()).padStart(2, "0")}`;
     const completed: { file: TFile; text: string; completedTs: string }[] = [];
@@ -1452,7 +1578,7 @@ class OdailySidebarView extends ItemView {
     if (completed.length === 0) {
       const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
       setIcon(empty.createSpan(), "clipboard-list");
-      empty.createSpan({ text: "没有已完成的事项" });
+      empty.createSpan({ text: t("empty.noDone") });
       return;
     }
 
@@ -1473,6 +1599,8 @@ class OdailySidebarView extends ItemView {
   }
 }
 
+// ── Utility ─────────────────────────────────────
+
 function formatDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -1482,7 +1610,8 @@ function formatDate(date: Date): string {
 }
 
 function formatDisplayDate(date: Date): string {
-  return new Intl.DateTimeFormat("zh-CN", {
+  const locale = isZh() ? "zh-CN" : "en-US";
+  return new Intl.DateTimeFormat(locale, {
     month: "long",
     day: "numeric",
     weekday: "long"
@@ -1496,19 +1625,21 @@ function formatRelativeTime(timestamp: number): string {
   const day = 24 * hour;
 
   if (deltaMs < minute) {
-    return "刚刚";
+    return t("rel.justNow");
   }
 
   if (deltaMs < hour) {
-    return `${Math.floor(deltaMs / minute)} 分钟前`;
+    return `${Math.floor(deltaMs / minute)}${t("rel.minutesAgo")}`;
   }
 
   if (deltaMs < day) {
-    return `${Math.floor(deltaMs / hour)} 小时前`;
+    return `${Math.floor(deltaMs / hour)}${t("rel.hoursAgo")}`;
   }
 
-  return `${Math.floor(deltaMs / day)} 天前`;
+  return `${Math.floor(deltaMs / day)}${t("rel.daysAgo")}`;
 }
+
+// ── Settings Tab ────────────────────────────────
 
 class OdailySettingTab extends PluginSettingTab {
   constructor(
@@ -1522,14 +1653,14 @@ class OdailySettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "Odaily Home 设置" });
+    containerEl.createEl("h2", { text: t("settings.title") });
 
     new Setting(containerEl)
-      .setName("浅色模式背景")
-      .setDesc("支持：Vault 图片路径（如 Attachments/bg.jpg）、外部链接、CSS 颜色、渐变。留空使用默认。")
+      .setName(t("settings.lightBg"))
+      .setDesc(t("settings.lightBgDesc"))
       .addText((text) =>
         text
-          .setPlaceholder("如: Attachments/light.jpg 或 #f0f0f0")
+          .setPlaceholder(t("settings.lightPh"))
           .setValue(this.plugin.settings.lightBackground)
           .onChange(async (value) => {
             this.plugin.settings.lightBackground = value;
@@ -1538,11 +1669,11 @@ class OdailySettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("深色模式背景")
-      .setDesc("支持：Vault 图片路径（如 Attachments/bg.jpg）、外部链接、CSS 颜色、渐变。留空使用默认。")
+      .setName(t("settings.darkBg"))
+      .setDesc(t("settings.darkBgDesc"))
       .addText((text) =>
         text
-          .setPlaceholder("如: Attachments/dark.jpg 或 #1a1a2e")
+          .setPlaceholder(t("settings.darkPh"))
           .setValue(this.plugin.settings.darkBackground)
           .onChange(async (value) => {
             this.plugin.settings.darkBackground = value;
@@ -1551,11 +1682,11 @@ class OdailySettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("未完成任务筛选标签")
-      .setDesc("只显示包含指定标签的任务，多个标签用逗号分隔。如: todo, 待办。留空显示所有未完成任务。")
+      .setName(t("settings.taskTags"))
+      .setDesc(t("settings.taskTagsDesc"))
       .addText((text) =>
         text
-          .setPlaceholder("如: todo, 待办")
+          .setPlaceholder(t("settings.taskTagsPh"))
           .setValue(this.plugin.settings.taskTags)
           .onChange(async (value) => {
             this.plugin.settings.taskTags = value;
@@ -1564,11 +1695,11 @@ class OdailySettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("待办添加目标文件")
-      .setDesc("新待办写入的文件路径。留空则写入当天日记。如: 00_inbox/待办清单。")
+      .setName(t("settings.todoFile"))
+      .setDesc(t("settings.todoFileDesc"))
       .addText((text) =>
         text
-          .setPlaceholder("留空 = 当天日记")
+          .setPlaceholder(t("settings.todoFilePh"))
           .setValue(this.plugin.settings.todoFile)
           .onChange(async (value) => {
             this.plugin.settings.todoFile = value;
@@ -1577,12 +1708,12 @@ class OdailySettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("待办追加位置")
-      .setDesc("新待办追加到文件最前面还是最后面。")
+      .setName(t("settings.todoPos"))
+      .setDesc(t("settings.todoPosDesc"))
       .addDropdown((dropdown) =>
         dropdown
-          .addOption("bottom", "文件末尾")
-          .addOption("top", "文件开头")
+          .addOption("bottom", t("settings.posBottom"))
+          .addOption("top", t("settings.posTop"))
           .setValue(this.plugin.settings.todoPosition)
           .onChange(async (value: string) => {
             this.plugin.settings.todoPosition = value as "top" | "bottom";
@@ -1593,20 +1724,20 @@ class OdailySettingTab extends PluginSettingTab {
     const help = containerEl.createDiv({ cls: "setting-item-description" });
     help.style.marginTop = "24px";
     help.style.lineHeight = "1.8";
-    help.createEl("b", { text: "使用说明" });
+    help.createEl("b", { text: t("settings.helpTitle") });
     help.createEl("br");
-    help.createSpan({ text: "1. 将图片放入 Vault 中（如 " });
+    help.createSpan({ text: t("settings.help1a") });
     help.createEl("code", { text: "Attachments/bg.jpg" });
-    help.createSpan({ text: "），在上方输入该路径即可" });
+    help.createSpan({ text: t("settings.help1b") });
     help.createEl("br");
-    help.createSpan({ text: "2. 也可输入网络图片链接，如 " });
+    help.createSpan({ text: t("settings.help2a") });
     help.createEl("code", { text: "https://example.com/bg.jpg" });
     help.createEl("br");
-    help.createSpan({ text: "3. 支持 CSS 原生写法：颜色 " });
+    help.createSpan({ text: t("settings.help3a") });
     help.createEl("code", { text: "#f0f0f0" });
-    help.createSpan({ text: "、渐变 " });
+    help.createSpan({ text: t("settings.help3b") });
     help.createEl("code", { text: "linear-gradient(135deg, #667eea, #764ba2)" });
     help.createEl("br");
-    help.createSpan({ text: "4. 浅色和深色模式可分别设置不同的背景" });
+    help.createSpan({ text: t("settings.help4") });
   }
 }
