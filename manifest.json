@@ -1,7 +1,7 @@
 {
   "id": "odaily",
   "name": "Odaily",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "minAppVersion": "1.7.2",
   "description": "A Liquid Glass new tab page with action cards, calendar sidebar, memo capture, and task management.",
   "author": "guchang",
