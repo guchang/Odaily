@@ -7,6 +7,7 @@
 - Search highlights keywords across all sidebar sections
 - Toolbar uses Obsidian standard icon buttons for visual consistency
 - Reduce calendar top/bottom padding for tighter layout
+- Add setting to enable/disable Home view (auto-replace empty tabs)
 
 ## 0.1.7
 

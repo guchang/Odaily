@@ -125,6 +125,8 @@ function initLocale(): void {
   S["modal.cancel"] = z ? "取消" : "Cancel";
   S["modal.save"] = z ? "保存" : "Save";
   S["notice.noSwitcher"] = z ? "快速切换器不可用" : "Quick switcher is not available.";
+  S["settings.enableHome"] = z ? "启用主页视图" : "Enable Home View";
+  S["settings.enableHomeDesc"] = z ? "开启后，新标签页会自动替换为 Odaily 主页。关闭后仍可通过命令手动打开。" : "When enabled, new empty tabs are replaced with Odaily Home. You can still open it via command when disabled.";
   S["settings.title"] = z ? "Odaily Home 设置" : "Odaily Home Settings";
   S["settings.lightBg"] = z ? "浅色模式背景" : "Light Mode Background";
   S["settings.lightBgDesc"] = z ? "支持：Vault 图片路径（如 Attachments/bg.jpg）、外部链接、CSS 颜色、渐变。留空使用默认。" : "Supports: vault image path (e.g. Attachments/bg.jpg), external URLs, CSS colors, gradients. Leave empty for default.";
@@ -203,6 +205,7 @@ interface ObsidianCommandManager {
 }
 
 interface OdailySettings {
+  enableHome: boolean;
   lightBackground: string;
   darkBackground: string;
   taskTags: string;
@@ -211,6 +214,7 @@ interface OdailySettings {
 }
 
 const DEFAULT_SETTINGS: OdailySettings = {
+  enableHome: true,
   lightBackground: "",
   darkBackground: "",
   taskTags: "",
@@ -526,6 +530,7 @@ export default class OdailyHomePlugin extends Plugin {
   }
 
   private async replaceEmptyLeaf(leaf: WorkspaceLeaf | null): Promise<void> {
+    if (!this.settings.enableHome) return;
     if (!leaf || this.replacingLeaves.has(leaf)) {
       return;
     }
@@ -1861,6 +1866,18 @@ class OdailySettingTab extends PluginSettingTab {
     containerEl.empty();
 
     new Setting(containerEl).setName(t("settings.title")).setHeading();
+
+    new Setting(containerEl)
+      .setName(t("settings.enableHome"))
+      .setDesc(t("settings.enableHomeDesc"))
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.enableHome)
+          .onChange(async (v) => {
+            this.plugin.settings.enableHome = v;
+            await this.plugin.saveSettings();
+          })
+      );
 
     new Setting(containerEl)
       .setName(t("settings.lightBg"))
