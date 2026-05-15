@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.8
+
+- Add sidebar toolbar: copy day summary and search toggle
+- Copy formats memos, docs, pending tasks, and completed items
+- Search highlights keywords across all sidebar sections
+- Toolbar uses Obsidian standard icon buttons for visual consistency
+- Reduce calendar top/bottom padding for tighter layout
+
 ## 0.1.7
 
 - Fix background image tiling instead of covering full area

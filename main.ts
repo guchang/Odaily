@@ -45,6 +45,24 @@ function appendSvg(parent: HTMLElement, svgString: string): void {
   if (svg) parent.appendChild(activeDocument.adoptNode(svg));
 }
 
+function highlightText(parent: HTMLElement, text: string, query: string): void {
+  if (!query) {
+    parent.createSpan({ text });
+    return;
+  }
+  const lower = text.toLowerCase();
+  const qLower = query.toLowerCase();
+  let last = 0;
+  let idx = lower.indexOf(qLower);
+  while (idx !== -1) {
+    if (idx > last) parent.createSpan({ text: text.slice(last, idx) });
+    parent.createSpan({ cls: "odaily-sidebar__highlight", text: text.slice(idx, idx + query.length) });
+    last = idx + query.length;
+    idx = lower.indexOf(qLower, last);
+  }
+  if (last < text.length) parent.createSpan({ text: text.slice(last) });
+}
+
 // ── i18n ────────────────────────────────────────
 
 let _isZh = false;
@@ -83,6 +101,16 @@ function initLocale(): void {
   S["sidebar.openDiary"] = z ? "打开日记" : "Open daily note";
   S["sidebar.prevMonth"] = z ? "上个月" : "Previous month";
   S["sidebar.nextMonth"] = z ? "下个月" : "Next month";
+  S["sidebar.searchPlaceholder"] = z ? "搜索当日内容..." : "Search today's content...";
+  S["sidebar.copy"] = z ? "复制当日摘要" : "Copy day summary";
+  S["sidebar.copyNotice"] = z ? "已复制到剪贴板" : "Copied to clipboard";
+  S["sidebar.copyEmpty"] = z ? "当日暂无内容" : "No content for this day";
+  S["sidebar.copyMemos"] = z ? "想法" : "Memos";
+  S["sidebar.copyTodos"] = z ? "任务" : "Tasks";
+  S["sidebar.copyDocs"] = z ? "文档" : "Docs";
+  S["sidebar.copyPending"] = z ? "未完成" : "Pending";
+  S["sidebar.copyDone"] = z ? "已完成" : "Done";
+  S["sidebar.toggleSearch"] = z ? "搜索" : "Search";
   S["empty.noDiaryToday"] = z ? "今日暂无日记" : "No daily note today";
   S["empty.noDiary"] = z ? "暂无日记" : "No daily note";
   S["empty.noMemos"] = z ? "还没有想法" : "No memos yet";
@@ -1080,6 +1108,8 @@ class OdailySidebarView extends ItemView {
   private pendingTimers = new Map<string, number>();
   private selectedDate: Date = new Date();
   private showMonthPicker = false;
+  private searchQuery = "";
+  private showSearch = false;
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -1118,12 +1148,61 @@ class OdailySidebarView extends ItemView {
 
     this.renderCalendar();
 
-    const body = this.contentEl.createDiv({ cls: "odaily-sidebar__body" });
+    // Toolbar (use Obsidian standard nav button classes for visual parity with built-in views)
+    const toolbar = this.contentEl.createDiv({ cls: "odaily-sidebar__toolbar nav-buttons-container" });
+    const searchToggle = toolbar.createEl("div", {
+      cls: "clickable-icon nav-action-button",
+      attr: { "aria-label": t("sidebar.toggleSearch") }
+    });
+    setIcon(searchToggle, "search");
+    searchToggle.addEventListener("click", () => {
+      this.showSearch = !this.showSearch;
+      if (!this.showSearch) this.searchQuery = "";
+      void this.render();
+    });
 
-    await this.renderTodayMemos(body);
-    this.renderTodayDocs(body);
-    await this.renderTasks(body);
-    await this.renderTodayCompleted(body);
+    const copyBtn = toolbar.createEl("div", {
+      cls: "clickable-icon nav-action-button",
+      attr: { "aria-label": t("sidebar.copy") }
+    });
+    setIcon(copyBtn, "clipboard-copy");
+    copyBtn.addEventListener("click", () => {
+      void this.copyDaySummary();
+    });
+
+    // Search box (hidden by default)
+    if (this.showSearch) {
+      const searchBar = this.contentEl.createDiv({ cls: "odaily-sidebar__search" });
+      setIcon(searchBar.createSpan({ cls: "odaily-sidebar__search-icon" }), "search");
+      const searchInput = searchBar.createEl("input", {
+        cls: "odaily-sidebar__search-input",
+        attr: { type: "text", placeholder: t("sidebar.searchPlaceholder") }
+      });
+      searchInput.value = this.searchQuery;
+      searchInput.focus();
+      searchInput.addEventListener("input", () => {
+        this.searchQuery = searchInput.value;
+        void this.renderBody();
+      });
+    }
+
+    const body = this.contentEl.createDiv({ cls: "odaily-sidebar__body" });
+    await this.renderBodyContent(body);
+  }
+
+  private async renderBody(): Promise<void> {
+    const body = this.contentEl.querySelector(".odaily-sidebar__body");
+    if (!body) return;
+    body.empty();
+    await this.renderBodyContent(body as HTMLElement);
+  }
+
+  private async renderBodyContent(body: HTMLElement): Promise<void> {
+    const q = this.searchQuery.trim().toLowerCase();
+    await this.renderTodayMemos(body, q);
+    this.renderTodayDocs(body, q);
+    await this.renderTasks(body, q);
+    await this.renderTodayCompleted(body, q);
   }
 
   private renderCalendar(): void {
@@ -1240,7 +1319,7 @@ class OdailySidebarView extends ItemView {
     }
   }
 
-  private async renderTodayMemos(parent: HTMLElement = this.contentEl): Promise<void> {
+  private async renderTodayMemos(parent: HTMLElement, filter = ""): Promise<void> {
     const sel = this.selectedDate;
     const isToday = sel.toDateString() === new Date().toDateString();
     const section = parent.createDiv({ cls: "odaily-sidebar__section" });
@@ -1274,19 +1353,25 @@ class OdailySidebarView extends ItemView {
       }
     }
 
-    if (memos.length === 0) {
-      const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
-      setIcon(empty.createSpan(), "lightbulb");
-      empty.createSpan({ text: t("empty.noMemos") });
+    const filtered = filter
+      ? memos.filter((m) => m.text.toLowerCase().includes(filter) || m.ts.toLowerCase().includes(filter))
+      : memos;
+
+    if (filtered.length === 0) {
+      if (!filter) {
+        const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
+        setIcon(empty.createSpan(), "lightbulb");
+        empty.createSpan({ text: t("empty.noMemos") });
+      }
       return;
     }
 
     const list = section.createDiv({ cls: "odaily-sidebar__list" });
-    for (const memo of memos) {
+    for (const memo of filtered) {
       const item = list.createDiv({ cls: "odaily-sidebar__item" });
       setIcon(item.createSpan({ cls: "odaily-sidebar__item-icon" }), "lightbulb");
       const body = item.createDiv({ cls: "odaily-sidebar__item-body" });
-      body.createDiv({ cls: "odaily-sidebar__item-title", text: memo.text });
+      highlightText(body.createDiv({ cls: "odaily-sidebar__item-title" }), memo.text, filter);
       body.createDiv({ cls: "odaily-sidebar__item-meta", text: memo.ts });
       item.addEventListener("click", () => {
         if (file) {
@@ -1296,7 +1381,7 @@ class OdailySidebarView extends ItemView {
     }
   }
 
-  private renderTodayDocs(parent: HTMLElement = this.contentEl): void {
+  private renderTodayDocs(parent: HTMLElement, filter = ""): void {
     const sel = this.selectedDate;
     const isToday = sel.toDateString() === new Date().toDateString();
     const section = parent.createDiv({ cls: "odaily-sidebar__section" });
@@ -1310,19 +1395,25 @@ class OdailySidebarView extends ItemView {
       .filter((f) => f.stat.mtime >= dayStart && f.stat.mtime < dayEnd)
       .sort((a, b) => b.stat.mtime - a.stat.mtime);
 
-    if (todayFiles.length === 0) {
-      const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
-      setIcon(empty.createSpan(), "file-text");
-      empty.createSpan({ text: t("empty.noDocs") });
+    const filtered = filter
+      ? todayFiles.filter((f) => f.basename.toLowerCase().includes(filter))
+      : todayFiles;
+
+    if (filtered.length === 0) {
+      if (!filter) {
+        const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
+        setIcon(empty.createSpan(), "file-text");
+        empty.createSpan({ text: t("empty.noDocs") });
+      }
       return;
     }
 
     const list = section.createDiv({ cls: "odaily-sidebar__list" });
-    for (const file of todayFiles.slice(0, 20)) {
+    for (const file of filtered.slice(0, 20)) {
       const item = list.createDiv({ cls: "odaily-sidebar__item" });
       setIcon(item.createSpan({ cls: "odaily-sidebar__item-icon" }), "file-text");
       const body = item.createDiv({ cls: "odaily-sidebar__item-body" });
-      body.createDiv({ cls: "odaily-sidebar__item-title", text: file.basename });
+      highlightText(body.createDiv({ cls: "odaily-sidebar__item-title" }), file.basename, filter);
       body.createDiv({
         cls: "odaily-sidebar__item-meta",
         text: formatRelativeTime(file.stat.mtime)
@@ -1333,7 +1424,7 @@ class OdailySidebarView extends ItemView {
     }
   }
 
-  private async renderTasks(parent: HTMLElement = this.contentEl): Promise<void> {
+  private async renderTasks(parent: HTMLElement, filter = ""): Promise<void> {
     const rawTags = this.plugin.settings.taskTags.trim();
     const filterTags = rawTags
       ? rawTags.split(/[,，]/).map((t) => t.trim().replace(/^#/, "").toLowerCase()).filter(Boolean)
@@ -1389,15 +1480,21 @@ class OdailySidebarView extends ItemView {
     // Sort by creation time, newest first
     tasks.sort((a, b) => b.createdAt - a.createdAt);
 
-    if (tasks.length === 0) {
-      const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
-      setIcon(empty.createSpan(), "clipboard-list");
-      empty.createSpan({ text: t("empty.noTodos") });
+    const filtered = filter
+      ? tasks.filter((t) => t.text.toLowerCase().includes(filter))
+      : tasks;
+
+    if (filtered.length === 0) {
+      if (!filter) {
+        const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
+        setIcon(empty.createSpan(), "clipboard-list");
+        empty.createSpan({ text: t("empty.noTodos") });
+      }
       return;
     }
 
     const list = section.createDiv({ cls: "odaily-sidebar__list" });
-    for (const task of tasks) {
+    for (const task of filtered) {
       const key = `${task.file.path}::${task.line}`;
       const item = list.createDiv({ cls: "odaily-sidebar__item" });
       if (this.pendingTimers.has(key)) {
@@ -1419,7 +1516,7 @@ class OdailySidebarView extends ItemView {
       for (const tag of task.tags) {
         titleRow.createSpan({ cls: "odaily-sidebar__item-tag", text: `#${tag}` });
       }
-      titleRow.createSpan({ text: cleanTaskText(task.text) });
+      highlightText(titleRow, cleanTaskText(task.text), filter);
 
       body.createDiv({
         cls: "odaily-sidebar__item-meta",
@@ -1536,7 +1633,7 @@ class OdailySidebarView extends ItemView {
     });
   }
 
-  private async renderTodayCompleted(parent: HTMLElement = this.contentEl): Promise<void> {
+  private async renderTodayCompleted(parent: HTMLElement, filter = ""): Promise<void> {
     const sel = this.selectedDate;
     const isToday = sel.toDateString() === new Date().toDateString();
     const section = parent.createDiv({ cls: "odaily-sidebar__section" });
@@ -1570,19 +1667,25 @@ class OdailySidebarView extends ItemView {
     // Sort by completion time, newest first
     completed.sort((a, b) => b.completedTs.localeCompare(a.completedTs));
 
-    if (completed.length === 0) {
-      const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
-      setIcon(empty.createSpan(), "clipboard-list");
-      empty.createSpan({ text: t("empty.noDone") });
+    const filtered = filter
+      ? completed.filter((t) => t.text.toLowerCase().includes(filter))
+      : completed;
+
+    if (filtered.length === 0) {
+      if (!filter) {
+        const empty = section.createDiv({ cls: "odaily-sidebar__empty" });
+        setIcon(empty.createSpan(), "clipboard-list");
+        empty.createSpan({ text: t("empty.noDone") });
+      }
       return;
     }
 
     const list = section.createDiv({ cls: "odaily-sidebar__list" });
-    for (const task of completed) {
+    for (const task of filtered) {
       const item = list.createDiv({ cls: "odaily-sidebar__item odaily-sidebar__item--done" });
       setIcon(item.createSpan({ cls: "odaily-sidebar__item-checkbox" }), "check-circle");
       const body = item.createDiv({ cls: "odaily-sidebar__item-body" });
-      body.createDiv({ cls: "odaily-sidebar__item-title", text: task.text });
+      highlightText(body.createDiv({ cls: "odaily-sidebar__item-title" }), task.text, filter);
       body.createDiv({
         cls: "odaily-sidebar__item-meta",
         text: `${task.completedTs}  ·  ${task.file.basename}`
@@ -1591,6 +1694,115 @@ class OdailySidebarView extends ItemView {
         this.plugin.openFileSmart(task.file);
       });
     }
+  }
+  private async copyDaySummary(): Promise<void> {
+    const sel = this.selectedDate;
+    const dayStart = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate()).getTime();
+    const dayEnd = dayStart + 86400000;
+    const dateStr = `${sel.getFullYear()}-${String(sel.getMonth() + 1).padStart(2, "0")}-${String(sel.getDate()).padStart(2, "0")}`;
+
+    const memos: string[] = [];
+    const todos: string[] = [];
+    const doneItems: string[] = [];
+    const docNames: string[] = [];
+
+    // 1. Memos from daily note
+    const { fileName } = this.plugin.getDailyNotePath(sel);
+    const dnFile = this.app.vault.getAbstractFileByPath(fileName);
+    if (dnFile instanceof TFile) {
+      const content = await this.app.vault.read(dnFile);
+      for (const line of content.split("\n")) {
+        const m = line.match(/^#memo\s+(.+)/);
+        if (m) memos.push(m[1].trim());
+      }
+    }
+
+    // 2. Uncompleted tasks from all files
+    const rawTags = this.plugin.settings.taskTags.trim();
+    const filterTags = rawTags
+      ? rawTags.split(/[,，]/).map((tg) => tg.trim().replace(/^#/, "").toLowerCase()).filter(Boolean)
+      : [];
+
+    const allFiles = this.app.vault
+      .getMarkdownFiles()
+      .sort((a, b) => b.stat.mtime - a.stat.mtime)
+      .slice(0, 100);
+
+    for (const file of allFiles) {
+      const content = await this.app.vault.read(file);
+      const lines = content.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        const todoMatch = lines[i].match(/^\s*- \[ \]\s+(.+)/);
+        if (todoMatch) {
+          const tags = parseTags(todoMatch[1]);
+          if (filterTags.length > 0 && !tags.some((tg) => filterTags.includes(tg.toLowerCase()))) continue;
+          const createdAt = parseTaskTime(todoMatch[1], file.stat.mtime);
+          if (createdAt >= dayEnd) continue;
+          todos.push(cleanTaskText(todoMatch[1]));
+          if (todos.length >= 30) break;
+        }
+      }
+      if (todos.length >= 30) break;
+    }
+
+    // 3. Completed tasks from all files
+    for (const file of allFiles) {
+      const content = await this.app.vault.read(file);
+      for (const line of content.split("\n")) {
+        const doneMatch = line.match(/^\s*- \[[xX]\]\s+(.+)/);
+        if (doneMatch && line.includes(`✅ ${dateStr}`)) {
+          const text = doneMatch[1].replace(/✅.*$/, "").trim();
+          doneItems.push(cleanTaskText(text));
+          if (doneItems.length >= 20) break;
+        }
+      }
+      if (doneItems.length >= 20) break;
+    }
+
+    // 4. Docs modified on selected date
+    const todayFiles = this.app.vault
+      .getMarkdownFiles()
+      .filter((f) => f.stat.mtime >= dayStart && f.stat.mtime < dayEnd)
+      .sort((a, b) => b.stat.mtime - a.stat.mtime);
+
+    for (const f of todayFiles.slice(0, 20)) {
+      docNames.push(f.basename);
+    }
+
+    // Format output
+    const parts: string[] = [];
+
+    if (memos.length > 0) {
+      const isToday = sel.toDateString() === new Date().toDateString();
+      parts.push(`## ${sectionTitle("memo", sel, isToday)}`);
+      memos.forEach((m, i) => { parts.push(`${i + 1}. ${m}`); });
+    }
+
+    if (docNames.length > 0) {
+      const isToday = sel.toDateString() === new Date().toDateString();
+      parts.push(`## ${sectionTitle("doc", sel, isToday)}`);
+      docNames.forEach((name, i) => { parts.push(`${i + 1}. ${name}`); });
+    }
+
+    if (todos.length > 0) {
+      const isToday = sel.toDateString() === new Date().toDateString();
+      parts.push(`## ${sectionTitle("todo", sel, isToday)}`);
+      todos.forEach((item, i) => { parts.push(`${i + 1}. ${item}`); });
+    }
+
+    if (doneItems.length > 0) {
+      const isToday = sel.toDateString() === new Date().toDateString();
+      parts.push(`## ${sectionTitle("done", sel, isToday)}`);
+      doneItems.forEach((item, i) => { parts.push(`${i + 1}. ${item}`); });
+    }
+
+    if (parts.length === 0) {
+      new Notice(t("sidebar.copyEmpty"));
+      return;
+    }
+
+    await navigator.clipboard.writeText(parts.join("\n"));
+    new Notice(t("sidebar.copyNotice"));
   }
 }
 
